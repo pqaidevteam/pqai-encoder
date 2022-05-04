@@ -18,9 +18,13 @@ class TestAPI(unittest.TestCase):
 		pass
 
 	def test_encode_route(self):
-		url = "{}/encode?text=sometext".format(API_ENDPOINT)
+		text = 'Some random text'
+		url = "{}/encode?text={}".format(API_ENDPOINT, text)
 		response = requests.get(url)
 		self.assertEqual(200, response.status_code)
+		data = response.json()
+		self.assertIsInstance(data, dict)
+		self.assertIsInstance(data['vector'], list)
 
 
 if __name__ == '__main__':

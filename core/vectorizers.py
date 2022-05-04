@@ -6,7 +6,10 @@ from sentence_transformers import SentenceTransformer
 
 from core.encoders import Encoder
 
-from config.config import models_dir
+from pathlib import Path
+
+BASE_DIR = str(Path(__file__).parent.parent.resolve())
+models_dir = "{}/assets".format(BASE_DIR)
 
 class Vectorizer(Encoder):
 
@@ -28,7 +31,7 @@ class SentBERTVectorizer:
 
     class __impl(Vectorizer):
 
-        sentbert_model_path = models_dir + 'vectorizer_distilbert_poc/'
+        sentbert_model_path = models_dir.rstrip('/') + '/vectorizer_distilbert_poc/'
         
         def __init__(self):
             super().__init__()
@@ -68,8 +71,8 @@ class CPCVectorizer:
     
     class __impl(Vectorizer):
 
-        cpc_list_file = models_dir + 'cpc_vectors_256d.items.json'
-        cpc_vecs_file = models_dir + 'cpc_vectors_256d.npy'
+        cpc_list_file = models_dir.rstrip('/') + '/cpc_vectors_256d.items.json'
+        cpc_vecs_file = models_dir.rstrip('/') + '/cpc_vectors_256d.npy'
         
         def __init__(self):
             super().__init__()
@@ -110,9 +113,9 @@ class SIFTextVectorizer:
     
     class __impl(Vectorizer):
         
-        word_vecs_file = models_dir + 'glove-We.npy'
-        word_list_file = models_dir + 'glove-vocab.json'
-        word_freq_file = models_dir + 'dfs.json'
+        word_vecs_file = models_dir.rstrip('/') + '/glove-We.npy'
+        word_list_file = models_dir.rstrip('/') + '/glove-vocab.json'
+        word_freq_file = models_dir.rstrip('/') + '/dfs.json'
         
         def __init__(self):
             super().__init__()
@@ -154,12 +157,12 @@ class SIFTextVectorizer:
 
         def embed (self, text, unique=True, remove_pc=False, average=False):
             words = self.tokenize(text)
-            if len(words) is 0:
+            if not words:
                 return self.gray
             if unique:
                 words = list(set(words))
             idxs = [self.lut[w] for w in words if w in self.lut]
-            if len(idxs) is 0:
+            if not idxs:
                 return self.gray
             if not average:
                 matrix = np.array([self.vecs[i]*self.sifs[i] for i in idxs])
