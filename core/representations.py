@@ -14,14 +14,13 @@ BASE_DIR = str(Path(__file__).parent.parent.resolve())
 MODELS_DIR = "{}/assets".format(BASE_DIR)
 
 
-class GloveWordEmbeddings():
-    
+class GloveWordEmbeddings:
     def __init__(self):
         self.models_dir = MODELS_DIR
-        self.vocab_file = self.models_dir + '/glove-vocab.json'
-        self.dict_file = self.models_dir + '/glove-dictionary.json'
-        self.dfs_file = self.models_dir + '/dfs.json'
-        self.embeddings_file = self.models_dir + '/glove-We.npy'
+        self.vocab_file = self.models_dir + "/glove-vocab.json"
+        self.dict_file = self.models_dir + "/glove-dictionary.json"
+        self.dfs_file = self.models_dir + "/dfs.json"
+        self.embeddings_file = self.models_dir + "/glove-We.npy"
         self.vocab = None
         self.dictionary = None
         self.dfs = None
@@ -29,7 +28,7 @@ class GloveWordEmbeddings():
         self.embeddings = None
         self.dims = None
         self._load()
-    
+
     def _load(self):
         with open(self.vocab_file) as file:
             self.vocab = json.load(file)
@@ -38,35 +37,35 @@ class GloveWordEmbeddings():
         with open(self.dfs_file) as file:
             self.dfs = json.load(file)
         self.embeddings = np.load(self.embeddings_file)
-        self.sifs = { word:self.df2sif(word, self.dfs) for word in self.dfs }
+        self.sifs = {word: self.df2sif(word, self.dfs) for word in self.dfs}
         self.dims = self.embeddings.shape[1]
-    
+
     def __len__(self):
         return self.embeddings.shape[0]
-    
+
     @staticmethod
     def df2sif(word, dfs):
         n = dfs[word]
-        N = dfs['the']
+        N = dfs["the"]
         p = n / N
         a = 0.01
         w = a / (a + p)
         return w
-    
+
     def __getitem__(self, item):
         if type(item) is int:
             return self.embeddings[item]
         elif type(item) is str:
-            item = item if item in self.dictionary else '<unk>'
+            item = item if item in self.dictionary else "<unk>"
             return self.embeddings[self.dictionary[item]]
         else:
             return np.zeros(self.dims)
-    
-    def get_sif (self, word):
+
+    def get_sif(self, word):
         return self.sifs.get(word, 1.0)
 
 
-class Embeddings():
+class Embeddings:
 
     """Base class for a collection of items and their corresponding
        vectors, e.g., word embeddings obtained from word2vec or GloVe.
@@ -75,7 +74,7 @@ class Embeddings():
         items (list): Item labels
         vectors (iterable): An array of item vectors
     """
-    
+
     def __init__(self, items, vectors):
         """Initialize
         
@@ -91,7 +90,7 @@ class Embeddings():
                 between items and vectors.
         """
         if len(items) != len(vectors):
-            raise Exception('Unequal number of items and vectors.')
+            raise Exception("Unequal number of items and vectors.")
 
         self.items = items
         self.vectors = vectors
@@ -100,7 +99,7 @@ class Embeddings():
     def _make_dict(self):
         """Make a dictionary for quick look up of item vectors.
         """
-        self._dict = { item: i for i, item in enumerate(self.items) }
+        self._dict = {item: i for i, item in enumerate(self.items)}
 
     def __getitem__(self, item):
         """Get the vector for given item.
@@ -123,8 +122,8 @@ class WordEmbeddings(Embeddings):
         PAD (str): Label for the padding token
         UNK (str): Label for the unknown token
     """
-    
-    def __init__(self, words, embeddings, pad='<pad>', unk='<unk>'):
+
+    def __init__(self, words, embeddings, pad="<pad>", unk="<unk>"):
         """Initialize word embeddings
         
         Args:
@@ -159,41 +158,41 @@ class WordEmbeddings(Embeddings):
 class Text(str):
     def __init__(self, text):
         self._text = text
-        self._default_tokenizer = RegexpTokenizer(r'\w+')
-    
+        self._default_tokenizer = RegexpTokenizer(r"\w+")
+
     def to_tokens(self, tokenizer=None):
         if not tokenizer:
             tokenizer = self._default_tokenizer
         tokens = tokenizer.tokenize(self._text_lower)
         return TokenSequence(tokens)
-    
+
     @property
     def _text_lower(self):
         return self._text.lower()
-    
+
     def __repr__(self):
-        prefix = 'Text: '
+        prefix = "Text: "
         if len(self._text) < 77:
             return prefix + self._text
         else:
-            return prefix + self._text[:17] + '...'
+            return prefix + self._text[:17] + "..."
 
 
 class TokenSequence(list):
     def __init__(self, tokens):
         super().__init__(tokens)
         self._tokens = tokens
-    
+
     def to_vector_sequence(self, token_embeddings):
         vectors = [token_embeddings[token] for token in self._tokens]
         return VectorSequence(self._tokens, vectors)
-    
+
     @property
     def tokens(self):
         return self._tokens
 
 
-class VectorSequence():
+class VectorSequence:
     def __init__(self, labels, vectors):
         self._labels = labels
         self._sequence = np.array(vectors)
@@ -201,42 +200,42 @@ class VectorSequence():
         self._dims = self._sequence.shape[1]
         self._fixed_length = None
         self._default_interaction = Interaction()
-        self._default_interaction.metric = 'cosine'
+        self._default_interaction.metric = "cosine"
         self._default_interaction.amplify = False
         self._default_interaction.reinforce = True
         self._default_interaction.context = True
         self._default_interaction.window = 5
-    
+
     @property
     def labels(self):
         return self._labels
-    
+
     def __repr__(self):
-        text = f'VectorSequence: {len(self._labels)} labels, {len(self._sequence)} vectors;'
+        text = f"VectorSequence: {len(self._labels)} labels, {len(self._sequence)} vectors;"
         text += f' Labels: {", ".join(self._labels[:5])}'
-        text += ', ...' if self._labels[5:] else ''
+        text += ", ..." if self._labels[5:] else ""
         return text
-    
+
     def _weighted_by_tokens(self, weights):
         W = [weights[token] for token in self._tokens]
         return self.weighted_by_vectors(W)
-    
+
     def _weighted_by_vectors(self, W):
         W = np.array(W).reshape(1, -1)
         return self._sequence * W.T
-    
+
     def weigh(self, weights):
         if isinstance(weights, dict):
             self._weighted_by_tokens(weights)
         self._weighted_by_vector(weights)
-    
+
     @property
     def redundancy_vector(self):
         interact = self._default_interaction.interact
         interactions = interact(self, self)
         interactions = np.tril(interactions._matrix, -1)
         return np.max(interactions, axis=1)
-    
+
     @property
     def matrix(self):
         if self._fixed_length is None:
@@ -248,7 +247,7 @@ class VectorSequence():
 
     @property
     def _truncated(self):
-        return self._sequence[:self._fixed_length]
+        return self._sequence[: self._fixed_length]
 
     @property
     def _padded(self):
@@ -263,48 +262,52 @@ class VectorSequence():
 
     @property
     def normalized_matrix(self):
-        row_magnitudes = np.sqrt(np.sum(self._sequence*self._sequence, axis=1, keepdims=True))
+        row_magnitudes = np.sqrt(
+            np.sum(self._sequence * self._sequence, axis=1, keepdims=True)
+        )
         row_magnitudes += np.finfo(float).eps
         return self._sequence / row_magnitudes
 
 
-class Interaction():
-    
-    def __init__(self, metric='cosine', context=False, amplify=False, reinforce=False, window=5):
+class Interaction:
+    def __init__(
+        self, metric="cosine", context=False, amplify=False, reinforce=False, window=5
+    ):
         self.metric = metric
         self.context = context
         self.amplify = amplify
         self.reinforce = reinforce
         self.window_size = window
-        self._amplify_matrix =  np.vectorize(self._amplify)
+        self._amplify_matrix = np.vectorize(self._amplify)
         self._a = 3.2
         self._b = 7.5
         self._c = 0.46
         self._f = 1.0
         self._h = 0.0
-    
+
     def _dot_interaction(self, A, B):
         return np.matmul(A, B.T)
-    
+
     def _cosine_interaction(self, A, B):
         An = self._normalize_rows(A)
         Bn = self._normalize_rows(B)
         return self._dot_interaction(An, Bn)
-    
+
     def _euclidean_interaction(self, A, B):
-        diff = A-B
-        sq_diff = diff*diff
+        diff = A - B
+        sq_diff = diff * diff
         return np.sqrt(sq_diff)
-    
+
     def _context_sequence(self, vector_seq):
         M = vector_seq.matrix
         C = np.zeros(M.shape)
-        C *= np.array([sifs[word] if word in sifs else 1.0
-                       for word in vector_seq.labels]).reshape((-1, 1))
-        r = min(len(M-1), self.window_size+1)
+        C *= np.array(
+            [sifs[word] if word in sifs else 1.0 for word in vector_seq.labels]
+        ).reshape((-1, 1))
+        r = min(len(M - 1), self.window_size + 1)
         for i in range(1, r):
-            C[i:,:] += M[:-i,:]
-            C[:-i,:] += M[i:,:]
+            C[i:, :] += M[:-i, :]
+            C[:-i, :] += M[i:, :]
         return C
 
     def interact(self, vector_seq_A, vector_seq_B):
@@ -312,60 +315,60 @@ class Interaction():
         B = vector_seq_B.matrix
         I = self.interaction_fn(A, B)
         I = self._amplifier(I) if self.amplify else I
-        
+
         if not self.context:
             return InteractionMatrix(I)
-        
+
         Ac = self._context_sequence(vector_seq_A)
         Bc = self._context_sequence(vector_seq_B)
         Ic = self.interaction_fn(Ac, Bc)
         Ic = self._amplifier(Ic) if self.amplify else Ic
-        
+
         if not self.reinforce:
-            return InteractionMatrix(I+Ic)
-        
+            return InteractionMatrix(I + Ic)
+
         M = self._reinforce(I, Ic)
         return InteractionMatrix(M)
-    
+
     @property
     def interaction_fn(self):
-        if self.metric == 'cosine':
+        if self.metric == "cosine":
             return self._cosine_interaction
-        elif self.metric == 'dot':
+        elif self.metric == "dot":
             return self._dot_interaction
-        elif self.metric == 'euclidean':
+        elif self.metric == "euclidean":
             return self._euclidean_interaction
-    
+
     @staticmethod
     def _normalize_rows(M):
-        row_magnitudes = np.sqrt(np.sum(M*M, axis=1, keepdims=True))
+        row_magnitudes = np.sqrt(np.sum(M * M, axis=1, keepdims=True))
         row_magnitudes += np.finfo(float).eps
         return M / row_magnitudes
-    
+
     @staticmethod
     def _reinforce(A, B):
-        return 0.25*(A + B + 2*(A*B))
-    
+        return 0.25 * (A + B + 2 * (A * B))
+
     def _amplify(self, x):
-        return self._h + (self._f/(1+(self._a*math.exp(self._b*(x-self._c)))))
-    
+        return self._h + (self._f / (1 + (self._a * math.exp(self._b * (x - self._c)))))
+
     @staticmethod
     @numba.vectorize([numba.float64(numba.float64)])
     def _amplifier(x):
-        return 1/(1+(3.2*math.exp(-7.5*(x-0.46))))
+        return 1 / (1 + (3.2 * math.exp(-7.5 * (x - 0.46))))
 
 
-class InteractionMatrix():
-    
+class InteractionMatrix:
     def __init__(self, I):
         self._matrix = I
-    
+
     def available_metrics(self):
         return self._available_interactions
-    
-    def maxpool(self, direction='horizontal'):
-        axis = 1 if direction == 'horizontal' else 0
+
+    def maxpool(self, direction="horizontal"):
+        axis = 1 if direction == "horizontal" else 0
         return np.max(self._matrix, axis=axis)
+
 
 embeddings = GloveWordEmbeddings()
 sifs = embeddings.sifs
@@ -374,8 +377,8 @@ sifs = embeddings.sifs
 from scipy.spatial import distance
 from core.utils import normalize_rows
 
-class BagOfVectors():
-    
+
+class BagOfVectors:
     def __init__(self, vectors):
         self._vectors = vectors
 
@@ -391,8 +394,8 @@ class BagOfVectors():
                 dists[i, j] = dist_fn(v1, v2)
         return dists.min(axis=1).sum()
 
-class BagOfEntities(set):
 
+class BagOfEntities(set):
     def __init__(self, entities):
         super().__init__(entities)
         self._entities = set(entities)
@@ -405,15 +408,14 @@ class BagOfEntities(set):
         return independent
 
     def _is_part_of_another(self, entity):
-        separator = r'[\_\s]'
+        separator = r"[\_\s]"
         for target in self._entities:
             if target == entity:
                 continue
-            if re.search(rf'^{entity}{separator}', target):
+            if re.search(rf"^{entity}{separator}", target):
                 return True
-            if re.search(rf'{separator}{entity}{separator}', target):
+            if re.search(rf"{separator}{entity}{separator}", target):
                 return True
-            if re.search(rf'{separator}{entity}$', target):
+            if re.search(rf"{separator}{entity}$", target):
                 return True
         return False
-
