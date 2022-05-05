@@ -1,13 +1,11 @@
-from core import utils
 import re
-import numpy as np
 from pathlib import Path
+import numpy as np
+from core import utils
+from core.representations import BagOfEntities
 
 BASE_DIR = str(Path(__file__).parent.parent.resolve())
 models_dir = "{}/assets".format(BASE_DIR)
-
-from core.representations import BagOfEntities
-
 
 class Encoder:
 

@@ -1,12 +1,10 @@
 import re
-import numpy as np
 import json
+from pathlib import Path
+import numpy as np
 from sklearn.decomposition import TruncatedSVD
 from sentence_transformers import SentenceTransformer
-
 from core.encoders import Encoder
-
-from pathlib import Path
 
 BASE_DIR = str(Path(__file__).parent.parent.resolve())
 models_dir = "{}/assets".format(BASE_DIR)
