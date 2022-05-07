@@ -1,9 +1,8 @@
-import json
-import numpy as np
 import re
-from annoy import AnnoyIndex
-
+import json
 from pathlib import Path
+import numpy as np
+from annoy import AnnoyIndex
 
 BASE_DIR = str(Path(__file__).parent.parent.resolve())
 models_dir = "{}/assets".format(BASE_DIR)

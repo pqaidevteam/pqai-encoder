@@ -1,18 +1,15 @@
-import numpy as np
-from nltk.tokenize import RegexpTokenizer
-import math
-import numba
 import re
 import json
-from sklearn.decomposition import TruncatedSVD
-
-from core.utils import is_cpc_code, is_patent_number
-
+import math
 from pathlib import Path
+import numba
+import numpy as np
+from nltk.tokenize import RegexpTokenizer
+from sklearn.decomposition import TruncatedSVD
+from core.utils import is_cpc_code, is_patent_number
 
 BASE_DIR = str(Path(__file__).parent.parent.resolve())
 MODELS_DIR = "{}/assets".format(BASE_DIR)
-
 
 class GloveWordEmbeddings:
     def __init__(self):

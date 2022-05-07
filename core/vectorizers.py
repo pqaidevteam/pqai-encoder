@@ -7,7 +7,6 @@ from sentence_transformers import SentenceTransformer
 from core.utils import Singleton
 from core.encoders import Encoder
 
-
 BASE_DIR = str(Path(__file__).parent.parent.resolve())
 models_dir = "{}/assets".format(BASE_DIR)
 
