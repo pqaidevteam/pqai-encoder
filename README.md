@@ -1,3 +1,5 @@
+_Note: This repository is under activity development and not ready for production yet._
+
 # PQAI Encoder (WIP)
 
 PQAI service for creating representations of items. Items can be things like text or patent classification codes (e.g. CPC). Representations can be high-dimensional embeddings, bag of words, etc.

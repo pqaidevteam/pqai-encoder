@@ -14,18 +14,22 @@ API_ENDPOINT = "{}://{}:{}".format(PROTOCOL, HOST, PORT)
 
 
 class TestAPI(unittest.TestCase):
+    
     def setUp(self):
         pass
 
-    def test_encode_route(self):
+    def test__can_encode_text(self):
         text = "Some random text"
-        url = "{}/encode?text={}".format(API_ENDPOINT, text)
-        response = requests.get(url)
+        url = "{}/encode".format(API_ENDPOINT)
+        payload = {"data": text, "encoder": 'sbert'}
+        response = requests.post(url, json=payload)
         self.assertEqual(200, response.status_code)
         data = response.json()
         self.assertIsInstance(data, dict)
         self.assertIsInstance(data["vector"], list)
 
+    def test__throws_error_when_no_encoder_specified(self):
+        pass
 
 if __name__ == "__main__":
     unittest.main()
