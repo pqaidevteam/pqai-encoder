@@ -7,11 +7,12 @@ from core.representations import BagOfEntities
 BASE_DIR = str(Path(__file__).parent.parent.resolve())
 models_dir = "{}/assets".format(BASE_DIR)
 
+
 class Encoder:
 
     """Base class for making objects that encode one form of data into
-	another form, e.g., text to tokens or text to vectors.
-	"""
+    another form, e.g., text to tokens or text to vectors.
+    """
 
     def __init__(self, fn=None):
         self._encoder_fn = fn
@@ -138,13 +139,13 @@ class BagOfEntitiesEncoder(Encoder):
 class EmbeddingMatrix:
 
     """A wrapper on a collection of items and their embeddings. It
-	provides easy retrieval of embedding of any vector and retrieval of
-	items similar to a given item on the basis of the similarity of their
-	vectors.
+    provides easy retrieval of embedding of any vector and retrieval of
+    items similar to a given item on the basis of the similarity of their
+    vectors.
 
-	It can be used to store such data as word, entity, or document
-	embeddings.
-	"""
+    It can be used to store such data as word, entity, or document
+    embeddings.
+    """
 
     def __init__(self, items, vectors):
         self._items = items
@@ -198,16 +199,16 @@ class EmbeddingMatrix:
     @classmethod
     def from_txt_npy(self, txt_filepath, npy_filepath):
         """Create an `EmbeddingMatrix` from an items file containing the
-		a list of item descriptions (one per line) and a numpy file with
-		the vectors that have one-to-one correspondance with the items.
-		
-		Args:
-		    txt_filepath (str): Path to items file
-		    npy_filepath (str): Path to numpy (vectors) file
-		
-		Returns:
-		    EmbeddingMatrix: Resulting embedding matrix object
-		"""
+        a list of item descriptions (one per line) and a numpy file with
+        the vectors that have one-to-one correspondance with the items.
+
+        Args:
+            txt_filepath (str): Path to items file
+            npy_filepath (str): Path to numpy (vectors) file
+
+        Returns:
+            EmbeddingMatrix: Resulting embedding matrix object
+        """
         with open(txt_filepath) as file:
             items = [l.strip() for l in file if l.strip()]
         vectors = np.load(npy_filepath)
@@ -216,16 +217,16 @@ class EmbeddingMatrix:
     @classmethod
     def from_tsv(self, filepath):
         """Create an `EmbeddingMatrix` from a tsv file where the first
-		column contains the item descriptions and subsequent columns
-		contain the vector components. All columns should be separated
+                column contains the item descriptions and subsequent columns
+                contain the vector components. All columns should be separated
         by single tabs.
-		
-		Args:
-		    filepath (str): Path to tsv (tab separated values) file
-		
-		Returns:
-		    EmbeddingMatrix: Resulting embedding matrix object
-		"""
+
+                Args:
+                    filepath (str): Path to tsv (tab separated values) file
+
+                Returns:
+                    EmbeddingMatrix: Resulting embedding matrix object
+        """
         pairs = self._parse_tsv_file(filepath)
         items = [word for word, _ in pairs]
         vectors = np.array([vector for _, vector in pairs])

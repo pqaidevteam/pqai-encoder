@@ -4,6 +4,7 @@ Attributes:
     app (fastapi.applications.FastAPI): Fast API app
 """
 from dotenv import load_dotenv
+
 load_dotenv()
 
 import os
@@ -14,17 +15,18 @@ from pydantic import BaseModel
 from core.vectorizers import SentBERTVectorizer
 from core.encoders import default_boe_encoder, default_embedding_matrix
 
+
 class EncodingRequest(BaseModel):
     data: Union[str, List[str]]
-    encoder: Literal['sbert', 'boe', 'emb']
+    encoder: Literal["sbert", "boe", "emb"]
+
 
 app = FastAPI()
 
 
 @app.post("/encode")
 async def encode(req: EncodingRequest):
-    """Encode given item(s)
-    """
+    """Encode given item(s)"""
     if req.encoder == "sbert":
         if isinstance(req.data, list):
             vector = SentBERTVectorizer().encode_many(req.data)
@@ -46,6 +48,7 @@ async def encode(req: EncodingRequest):
         elif isinstance(req.data, str):
             embedding = default_embedding_matrix[req.data].tolist()
             return {"original": req.data, "encoded": embedding}
+
 
 if __name__ == "__main__":
     port = int(os.environ["PORT"])

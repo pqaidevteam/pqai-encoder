@@ -24,10 +24,10 @@ def calc_confidence_score(vecs):
     among the vectors. If the standard deviation of the similarity
     is high, confidence score is low, and if it is low, confidence
     score is high.
-    
+
     Args:
         vecs (numpy.ndarray): 2d array where rows are vectors.
-    
+
     Returns:
         str: One value from the set { 'High', 'Medium', 'Low'}
     """
@@ -59,10 +59,10 @@ def is_cpc_code(item):
     H04W52/00 => True
     H04W => False
     H04W005202 => False
-    
+
     Args:
         item (str): String to be checked.
-    
+
     Returns:
         bool: True if input string is a CPC code, False otherwise.
     """
@@ -75,10 +75,10 @@ def is_cpc_code(item):
 def is_patent_number(item):
     """Check if a string is a publication number for a patent or an
     application.
-    
+
     Args:
         item (str): String to be checked.
-    
+
     Returns:
         bool: True if the input string is a publication number, False
             otherwise.
@@ -97,10 +97,10 @@ def is_generic(word):
     """Check if a given word is a generic word, e.g., 'the', 'of', etc.
     It is determined on the basis of a hand-picked list of keywords
     determined as generic words commonly used in patents.
-    
+
     Args:
         word (str): Word to be checked.
-    
+
     Returns:
         bool: True if the word is a generic word, False otherwise.
     """
@@ -109,10 +109,10 @@ def is_generic(word):
 
 def get_sentences(text):
     """Split a given (English) text (possibly multiline) into sentences.
-    
+
     Args:
         text (str): Text to be split into sentences.
-    
+
     Returns:
         list: Sentences.
     """
@@ -139,10 +139,10 @@ def get_sentences(text):
 def get_paragraphs(text):
     r"""Split a text into paragraphs. Assumes paragraphs are separated
     by new line characters (\n).
-    
+
     Args:
         text (str): Text to be split into paragraphs.
-    
+
     Returns:
         list: Paragraphs.
     """
@@ -151,11 +151,11 @@ def get_paragraphs(text):
 
 def cosine_dist(a, b):
     """Find the cosine similarity between two vectors.
-    
+
     Args:
         a (np.ndarray): The first vector
         b (np.ndarray): The second vector
-    
+
     Returns:
         float: Cosine distance between the vectors
     """
@@ -165,14 +165,14 @@ def cosine_dist(a, b):
 
 def tokenize(text, lowercase=True, alphanums=False):
     """Get tokens (words) from given text.
-    
+
     Args:
         text (str): Text to be tokenized (expects English text).
         lowercase (bool, optional): Whether the text should be
             lowercased before tokenization.
         alphanums (bool, optional): Whether words that contain numbers
             e.g., "3D" should be considered.
-    
+
     Returns:
         list: Array of tokens.
     """
@@ -231,9 +231,9 @@ def get_faln(authors):
         return faln
 
 
-
 class Singleton(type):
     _instances = {}
+
     def __call__(cls, *args, **kwargs):
         if cls not in cls._instances:
             cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)

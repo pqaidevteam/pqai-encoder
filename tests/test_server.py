@@ -14,13 +14,12 @@ API_ENDPOINT = "{}://{}:{}".format(PROTOCOL, HOST, PORT)
 
 
 class TestAPI(unittest.TestCase):
-    
     def setUp(self):
         self.route = f"{API_ENDPOINT}/encode"
 
     def test__can_vectorize_text_single(self):
         text = "Some random text"
-        payload = {"data": text, "encoder": 'sbert'}
+        payload = {"data": text, "encoder": "sbert"}
         response = requests.post(self.route, json=payload)
         self.assertEqual(200, response.status_code)
         data = response.json()
@@ -30,7 +29,7 @@ class TestAPI(unittest.TestCase):
 
     def test__can_vectorize_text_multiple(self):
         texts = ["Some random text", "Another random piece of text"]
-        payload = {"data": texts, "encoder": 'sbert'}
+        payload = {"data": texts, "encoder": "sbert"}
         response = requests.post(self.route, json=payload)
         self.assertEqual(200, response.status_code)
         data = response.json()
@@ -70,10 +69,10 @@ class TestAPI(unittest.TestCase):
 
     def test__throws_error_when_no_encoder_specified(self):
         text = "Some random text"
-        payload = {"data": text} # no encoder parameter!
+        payload = {"data": text}  # no encoder parameter!
         response = requests.post(self.route, json=payload)
         self.assertEqual(422, response.status_code)
-    
+
 
 if __name__ == "__main__":
     unittest.main()
