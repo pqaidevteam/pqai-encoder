@@ -1,17 +1,19 @@
+"""
+    This is a Utility module containing functions require to perform encoding.
+"""
+
 import re
-import json
 from pathlib import Path
 import numpy as np
-from annoy import AnnoyIndex
 
 BASE_DIR = str(Path(__file__).parent.parent.resolve())
-models_dir = "{}/assets".format(BASE_DIR)
+models_dir = f"{BASE_DIR}/assets"
 
 """
 Load stopwords
 """
 stopword_file = models_dir.rstrip("/") + "/stopwords.txt"
-with open(stopword_file, "r") as file:
+with open(stopword_file, "r", encoding="utf-8") as file:
     stopword_list = file.read().strip().splitlines()
 stopword_dict = {word: 1 for word in stopword_list}
 
@@ -24,10 +26,10 @@ def calc_confidence_score(vecs):
     among the vectors. If the standard deviation of the similarity
     is high, confidence score is low, and if it is low, confidence
     score is high.
-    
+
     Args:
         vecs (numpy.ndarray): 2d array where rows are vectors.
-    
+
     Returns:
         str: One value from the set { 'High', 'Medium', 'Low'}
     """
@@ -45,10 +47,9 @@ def calc_confidence_score(vecs):
     # Use empirically determined thresholds for confidence score.
     if std < 25:
         return "High"
-    elif 25 < std < 35:
+    if 25 < std < 35:
         return "Medium"
-    else:
-        return "Low"
+    return "Low"
 
 
 def is_cpc_code(item):
@@ -59,26 +60,26 @@ def is_cpc_code(item):
     H04W52/00 => True
     H04W => False
     H04W005202 => False
-    
+
     Args:
         item (str): String to be checked.
-    
+
     Returns:
         bool: True if input string is a CPC code, False otherwise.
     """
     if not isinstance(item, str):
         return False
     pattern = r"^[ABCDEFGHY]\d\d[A-Z]\d+\/\d+$"
-    return True if re.fullmatch(pattern, item) else False
+    return bool(re.fullmatch(pattern, item))
 
 
 def is_patent_number(item):
     """Check if a string is a publication number for a patent or an
     application.
-    
+
     Args:
         item (str): String to be checked.
-    
+
     Returns:
         bool: True if the input string is a publication number, False
             otherwise.
@@ -86,7 +87,7 @@ def is_patent_number(item):
     if not isinstance(item, str):
         return False
     pattern = r"^[A-Z]{2}\d+[A-Z]\d?$"
-    return True if re.fullmatch(pattern, item) else False
+    return bool(re.fullmatch(pattern, item))
 
 
 def is_doc_id(item):
@@ -97,22 +98,22 @@ def is_generic(word):
     """Check if a given word is a generic word, e.g., 'the', 'of', etc.
     It is determined on the basis of a hand-picked list of keywords
     determined as generic words commonly used in patents.
-    
+
     Args:
         word (str): Word to be checked.
-    
+
     Returns:
         bool: True if the word is a generic word, False otherwise.
     """
-    return True if word in stopword_dict else False
+    return bool(word in stopword_dict)
 
 
 def get_sentences(text):
     """Split a given (English) text (possibly multiline) into sentences.
-    
+
     Args:
         text (str): Text to be split into sentences.
-    
+
     Returns:
         list: Sentences.
     """
@@ -139,10 +140,10 @@ def get_sentences(text):
 def get_paragraphs(text):
     r"""Split a text into paragraphs. Assumes paragraphs are separated
     by new line characters (\n).
-    
+
     Args:
         text (str): Text to be split into paragraphs.
-    
+
     Returns:
         list: Paragraphs.
     """
@@ -151,11 +152,11 @@ def get_paragraphs(text):
 
 def cosine_dist(a, b):
     """Find the cosine similarity between two vectors.
-    
+
     Args:
         a (np.ndarray): The first vector
         b (np.ndarray): The second vector
-    
+
     Returns:
         float: Cosine distance between the vectors
     """
@@ -163,16 +164,14 @@ def cosine_dist(a, b):
     return dot / (np.linalg.norm(a) * np.linalg.norm(b)) if dot != 0.0 else 0.0
 
 
-def tokenize(text, lowercase=True, alphanums=False):
+def tokenize(text, lowercase=True):
     """Get tokens (words) from given text.
-    
+
     Args:
         text (str): Text to be tokenized (expects English text).
         lowercase (bool, optional): Whether the text should be
             lowercased before tokenization.
-        alphanums (bool, optional): Whether words that contain numbers
-            e.g., "3D" should be considered.
-    
+
     Returns:
         list: Array of tokens.
     """
@@ -227,12 +226,14 @@ def get_faln(authors):
         faln = re.findall(r"\w+", name)[-1]
     if len(authors) > 1:
         return faln + " et al."
-    else:
-        return faln
+    return faln
 
 
 
 class Singleton(type):
+    """
+        This is Singleton metaclass for making Singleton Classes
+    """
     _instances = {}
     def __call__(cls, *args, **kwargs):
         if cls not in cls._instances:

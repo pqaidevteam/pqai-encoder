@@ -1,3 +1,5 @@
+[![linting: pylint](https://img.shields.io/badge/linting-pylint-yellowgreen)](https://github.com/PyCQA/pylint)
+
 # PQAI Encoder (WIP)
 
 PQAI service for creating representations of items. Items can be things like text or patent classification codes (e.g. CPC). Representations can be high-dimensional embeddings, bag of words, etc.
