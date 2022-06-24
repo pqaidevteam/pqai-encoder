@@ -1,3 +1,5 @@
+[![linting: pylint](https://img.shields.io/badge/linting-pylint-yellowgreen)](https://github.com/PyCQA/pylint)
+
 _Note: This repository is under activity development and not ready for production yet._
 
 # PQAI Encoder (WIP)

@@ -1,17 +1,19 @@
+"""
+    This is a Utility module containing functions require to perform encoding.
+"""
+
 import re
-import json
 from pathlib import Path
 import numpy as np
-from annoy import AnnoyIndex
 
 BASE_DIR = str(Path(__file__).parent.parent.resolve())
-models_dir = "{}/assets".format(BASE_DIR)
+models_dir = f"{BASE_DIR}/assets"
 
 """
 Load stopwords
 """
 stopword_file = models_dir.rstrip("/") + "/stopwords.txt"
-with open(stopword_file, "r") as file:
+with open(stopword_file, "r", encoding="utf-8") as file:
     stopword_list = file.read().strip().splitlines()
 stopword_dict = {word: 1 for word in stopword_list}
 
@@ -45,10 +47,9 @@ def calc_confidence_score(vecs):
     # Use empirically determined thresholds for confidence score.
     if std < 25:
         return "High"
-    elif 25 < std < 35:
+    if 25 < std < 35:
         return "Medium"
-    else:
-        return "Low"
+    return "Low"
 
 
 def is_cpc_code(item):
@@ -69,7 +70,7 @@ def is_cpc_code(item):
     if not isinstance(item, str):
         return False
     pattern = r"^[ABCDEFGHY]\d\d[A-Z]\d+\/\d+$"
-    return True if re.fullmatch(pattern, item) else False
+    return bool(re.fullmatch(pattern, item))
 
 
 def is_patent_number(item):
@@ -86,7 +87,7 @@ def is_patent_number(item):
     if not isinstance(item, str):
         return False
     pattern = r"^[A-Z]{2}\d+[A-Z]\d?$"
-    return True if re.fullmatch(pattern, item) else False
+    return bool(re.fullmatch(pattern, item))
 
 
 def is_doc_id(item):
@@ -104,7 +105,7 @@ def is_generic(word):
     Returns:
         bool: True if the word is a generic word, False otherwise.
     """
-    return True if word in stopword_dict else False
+    return bool(word in stopword_dict)
 
 
 def get_sentences(text):
@@ -163,15 +164,13 @@ def cosine_dist(a, b):
     return dot / (np.linalg.norm(a) * np.linalg.norm(b)) if dot != 0.0 else 0.0
 
 
-def tokenize(text, lowercase=True, alphanums=False):
+def tokenize(text, lowercase=True):
     """Get tokens (words) from given text.
 
     Args:
         text (str): Text to be tokenized (expects English text).
         lowercase (bool, optional): Whether the text should be
             lowercased before tokenization.
-        alphanums (bool, optional): Whether words that contain numbers
-            e.g., "3D" should be considered.
 
     Returns:
         list: Array of tokens.
@@ -227,11 +226,13 @@ def get_faln(authors):
         faln = re.findall(r"\w+", name)[-1]
     if len(authors) > 1:
         return faln + " et al."
-    else:
-        return faln
+    return faln
 
 
 class Singleton(type):
+    """
+        This is Singleton metaclass for making Singleton Classes
+    """
     _instances = {}
 
     def __call__(cls, *args, **kwargs):

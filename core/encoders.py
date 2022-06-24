@@ -1,3 +1,7 @@
+"""
+    This is an encoders module contains different types of encoders
+"""
+
 import re
 from pathlib import Path
 import numpy as np
@@ -5,7 +9,7 @@ from core import utils
 from core.representations import BagOfEntities
 
 BASE_DIR = str(Path(__file__).parent.parent.resolve())
-models_dir = "{}/assets".format(BASE_DIR)
+models_dir = f"{BASE_DIR}/assets"
 
 
 class Encoder:
@@ -20,9 +24,15 @@ class Encoder:
         self._name = "Encoder"
 
     def set_encoding_fn(self, fn):
+        """
+            Setting encoder function
+        """
         self._encoder_fn = fn
 
     def set_input_validation_fn(self, fn):
+        """
+            Setting input function
+        """
         self._input_validation_fn = fn
 
     def encode(self, item):
@@ -35,7 +45,7 @@ class Encoder:
 
     def can_encode(self, data):
         is_valid = self._input_validation_fn
-        return False if callable(is_valid) and not is_valid(data) else True
+        return bool(callable(is_valid) and not is_valid(data))
 
     def _raise_invalid_encoder_fn_exception(self):
         msg = f"{self._name} does not have valid encoding function."
@@ -68,6 +78,7 @@ class BagOfEntitiesEncoder(Encoder):
         self._separator = " "
         self._sent_tokenizer = utils.get_sentences
         self._non_overlapping = True
+        self._blacklist = set()
 
     def set_maxlen(self, n):
         self._maxlen = n
@@ -90,7 +101,7 @@ class BagOfEntitiesEncoder(Encoder):
         entities = []
         for sent in self._sent_tokenizer(text):
             entities += self._get_entities_from_sentence(sent)
-        entities = set([e for e in entities if not self._in_blacklist(e)])
+        entities = {e for e in entities if not self._in_blacklist(e)}
         if self._non_overlapping:
             entities = BagOfEntities(entities).non_overlapping()
         return entities
@@ -122,15 +133,14 @@ class BagOfEntitiesEncoder(Encoder):
         return tokens
 
     def _in_blacklist(self, entity):
-        if entity in self._blacklist:
-            return True
+        return bool(entity in self._blacklist)
 
     def _load_blacklist(self):
         with open(f"{models_dir}/entities_blacklist.txt") as file:
             self._blacklist = set(file.read().strip().splitlines())
 
     @classmethod
-    def from_vocab_file(self, filepath):
+    def from_vocab_file(cls, filepath):
         encoder = BagOfEntitiesEncoder()
         encoder._vocab_file = filepath
         return encoder
@@ -197,56 +207,61 @@ class EmbeddingMatrix:
         return utils.normalize_rows(self._vectors)
 
     @classmethod
-    def from_txt_npy(self, txt_filepath, npy_filepath):
+    def from_txt_npy(cls, txt_filepath, npy_filepath):
         """Create an `EmbeddingMatrix` from an items file containing the
-        a list of item descriptions (one per line) and a numpy file with
-        the vectors that have one-to-one correspondance with the items.
+		a list of item descriptions (one per line) and a numpy file with
+		the vectors that have one-to-one correspondance with the items.
 
-        Args:
-            txt_filepath (str): Path to items file
-            npy_filepath (str): Path to numpy (vectors) file
+		Args:
+		    txt_filepath (str): Path to items file
+		    npy_filepath (str): Path to numpy (vectors) file
 
-        Returns:
-            EmbeddingMatrix: Resulting embedding matrix object
-        """
+		Returns:
+		    EmbeddingMatrix: Resulting embedding matrix object
+		"""
         with open(txt_filepath) as file:
             items = [l.strip() for l in file if l.strip()]
         vectors = np.load(npy_filepath)
         return EmbeddingMatrix(items, vectors)
 
     @classmethod
-    def from_tsv(self, filepath):
+    def from_tsv(cls, filepath):
         """Create an `EmbeddingMatrix` from a tsv file where the first
                 column contains the item descriptions and subsequent columns
                 contain the vector components. All columns should be separated
         by single tabs.
 
-                Args:
-                    filepath (str): Path to tsv (tab separated values) file
+		Args:
+		    filepath (str): Path to tsv (tab separated values) file
 
-                Returns:
-                    EmbeddingMatrix: Resulting embedding matrix object
-        """
-        pairs = self._parse_tsv_file(filepath)
+		Returns:
+		    EmbeddingMatrix: Resulting embedding matrix object
+		"""
+        pairs = cls._parse_tsv_file(filepath)
         items = [word for word, _ in pairs]
         vectors = np.array([vector for _, vector in pairs])
         return EmbeddingMatrix(items, vectors)
 
     @classmethod
-    def _parse_tsv_file(self, filepath):
+    def _parse_tsv_file(cls, filepath):
         with open(filepath) as file:
             lines = (l for l in file if l.strip())
-            pairs = [self._parse_tsv_line(l) for l in lines]
+            pairs = [cls._parse_tsv_line(l) for l in lines]
         return pairs
 
     @classmethod
-    def _parse_tsv_line(self, line):
+    def _parse_tsv_line(cls, line):
         [word, *vector] = line.strip().split("\t")
         vector = [float(val) for val in vector]
         return word, vector
 
 
 class BagOfVectorsEncoder(Encoder):
+    """
+        This class is a bag of words encoder class extending Encoder class.
+
+        
+    """
     def __init__(self, emb_matrix):
         super().__init__()
         self._emb_matrix = emb_matrix
@@ -259,12 +274,18 @@ class BagOfVectorsEncoder(Encoder):
         return set(vectors_as_tuples)
 
     @classmethod
-    def from_txt_npy(self, txtfile, npyfile):
+    def from_txt_npy(cls, txtfile, npyfile):
         emb_matrix = EmbeddingMatrix.from_txt_npy(txtfile, npyfile)
         return BagOfVectorsEncoder(emb_matrix)
 
 
 class BagOfWordsEncoder(Encoder):
+    """
+        This class is a bag of words encoder class extending Encoder class.
+
+        A text is represented as the bag of its words,
+        disregarding grammar and even word order but keeping multiplicity.
+    """
     def __init__(self, fn=None):
         super().__init__(fn)
         self._name = "BagOfTokensEncoder"
@@ -272,10 +293,18 @@ class BagOfWordsEncoder(Encoder):
 
 
 class VectorSequenceEncoder:
-    pass
+    """
+        This class is Vector sequence encoder class extending Encoder class.
+        Yet to be implemented.
+    """
 
 
 class TokenSequenceEncoder(Encoder):
+    """
+        This is a Token Sequence encoder class extending Encoder class.
+
+        Token is a sequence of characters in text that are grouped together as a useful sematic unit
+    """
     def __init__(self, fn=None):
         super().__init__(fn)
         self._name = "TokenSequenceEncoder"
