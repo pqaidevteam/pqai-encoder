@@ -65,9 +65,6 @@ class Encoder:
 
 
 class BagOfEntitiesEncoder(Encoder):
-    """
-
-    """
     def __init__(self):
         super().__init__()
         self._name = "BagOfEntitiesEncoder"
