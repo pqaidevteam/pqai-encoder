@@ -11,11 +11,12 @@ from core.representations import BagOfEntities
 BASE_DIR = str(Path(__file__).parent.parent.resolve())
 models_dir = f"{BASE_DIR}/assets"
 
+
 class Encoder:
 
     """Base class for making objects that encode one form of data into
-	another form, e.g., text to tokens or text to vectors.
-	"""
+    another form, e.g., text to tokens or text to vectors.
+    """
 
     def __init__(self, fn=None):
         self._encoder_fn = fn
@@ -151,13 +152,13 @@ class BagOfEntitiesEncoder(Encoder):
 class EmbeddingMatrix:
 
     """A wrapper on a collection of items and their embeddings. It
-	provides easy retrieval of embedding of any vector and retrieval of
-	items similar to a given item on the basis of the similarity of their
-	vectors.
+    provides easy retrieval of embedding of any vector and retrieval of
+    items similar to a given item on the basis of the similarity of their
+    vectors.
 
-	It can be used to store such data as word, entity, or document
-	embeddings.
-	"""
+    It can be used to store such data as word, entity, or document
+    embeddings.
+    """
 
     def __init__(self, items, vectors):
         self._items = items
@@ -229,8 +230,8 @@ class EmbeddingMatrix:
     @classmethod
     def from_tsv(cls, filepath):
         """Create an `EmbeddingMatrix` from a tsv file where the first
-		column contains the item descriptions and subsequent columns
-		contain the vector components. All columns should be separated
+                column contains the item descriptions and subsequent columns
+                contain the vector components. All columns should be separated
         by single tabs.
 
 		Args:

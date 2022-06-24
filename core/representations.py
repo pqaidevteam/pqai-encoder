@@ -11,6 +11,7 @@ from core.utils import is_cpc_code, is_patent_number
 BASE_DIR = str(Path(__file__).parent.parent.resolve())
 MODELS_DIR = "{}/assets".format(BASE_DIR)
 
+
 class GloveWordEmbeddings:
     def __init__(self):
         self.models_dir = MODELS_DIR
@@ -66,7 +67,7 @@ class Embeddings:
 
     """Base class for a collection of items and their corresponding
        vectors, e.g., word embeddings obtained from word2vec or GloVe.
-    
+
     Attributes:
         items (list): Item labels
         vectors (iterable): An array of item vectors
@@ -74,13 +75,13 @@ class Embeddings:
 
     def __init__(self, items, vectors):
         """Initialize
-        
+
         Args:
             items (list): Labels with which items are identified. Labels
                 must be hashable (used in an internal dictionary).
             vectors (ndarray): An array containing vectors for items in
                 the same sequence as the in the `items` list.
-        
+
         Raises:
             Exception: if the number of items are NOT equal to the
                 number of vectors, i.e., lack of one-to-one mapping
@@ -94,16 +95,15 @@ class Embeddings:
         self._dict = self._make_dict(self)
 
     def _make_dict(self):
-        """Make a dictionary for quick look up of item vectors.
-        """
+        """Make a dictionary for quick look up of item vectors."""
         self._dict = {item: i for i, item in enumerate(self.items)}
 
     def __getitem__(self, item):
         """Get the vector for given item.
-        
+
         Args:
             item (str): Item label
-        
+
         Returns:
             ndarray: Item vector
         """
@@ -114,7 +114,7 @@ class Embeddings:
 class WordEmbeddings(Embeddings):
 
     """Class for collection of word embeddings.
-    
+
     Attributes:
         PAD (str): Label for the padding token
         UNK (str): Label for the unknown token
@@ -122,7 +122,7 @@ class WordEmbeddings(Embeddings):
 
     def __init__(self, words, embeddings, pad="<pad>", unk="<unk>"):
         """Initialize word embeddings
-        
+
         Args:
             words (list): Words
             embeddings (ndarray): Word embeddings (vectors)
@@ -140,10 +140,10 @@ class WordEmbeddings(Embeddings):
 
         If the vector for the given word isn't known, then the vector
         for the unknown token `<unk>` is returned.
-        
+
         Args:
             word (str): A word
-        
+
         Returns:
             ndarray: The vector corresponding to the given word
         """
