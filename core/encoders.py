@@ -45,7 +45,7 @@ class Encoder:
 
     def can_encode(self, data):
         is_valid = self._input_validation_fn
-        return bool(callable(is_valid) and not is_valid(data))
+        return bool(callable(is_valid) and is_valid(data))
 
     def _raise_invalid_encoder_fn_exception(self):
         msg = f"{self._name} does not have valid encoding function."
@@ -65,6 +65,7 @@ class Encoder:
 
 
 class BagOfEntitiesEncoder(Encoder):
+
     def __init__(self):
         super().__init__()
         self._name = "BagOfEntitiesEncoder"
