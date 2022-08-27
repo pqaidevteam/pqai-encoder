@@ -20,7 +20,6 @@ class Encoder:
 
     def __init__(self, fn=None):
         self._encoder_fn = fn
-        self._input_validation_fn = None
         self._name = "Encoder"
 
     def set_encoding_fn(self, fn):
@@ -44,8 +43,9 @@ class Encoder:
         return [self.encode(item) for item in items]
 
     def can_encode(self, data):
-        is_valid = self._input_validation_fn
-        return bool(callable(is_valid) and is_valid(data))
+        if not callable(self._input_validation_fn):
+            raise Exception(f"{self._name} has no input checking method")
+        return self._input_validation_fn(data)
 
     def _raise_invalid_encoder_fn_exception(self):
         msg = f"{self._name} does not have valid encoding function."

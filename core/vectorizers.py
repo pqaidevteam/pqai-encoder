@@ -12,18 +12,20 @@ models_dir = "{}/assets".format(BASE_DIR)
 
 
 class Vectorizer(Encoder):
+
     def __init__(self):
         super().__init__()
         self._name = "Vectorizer"
+        self._encoder_fn = self.embed
 
     def _input_validation_fn(self, item):
         return isinstance(item, str)
 
-    def _encoding_fn(self, item):
-        return embed(item)
-
     def embed(self, item):
         pass
+
+    def encode_many(self, items):
+        return np.array([self.embed(item) for item in items])
 
 
 class SentBERTVectorizer(Vectorizer, metaclass=Singleton):
