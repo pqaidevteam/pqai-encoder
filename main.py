@@ -12,13 +12,13 @@ import uvicorn
 from fastapi import FastAPI, Response
 from typing import Union, List, Literal
 from pydantic import BaseModel
-from core.vectorizers import SentBERTVectorizer
+from core.vectorizers import SentBERTVectorizer, SIFTextVectorizer
 from core.encoders import default_boe_encoder, default_embedding_matrix
 
 
 class EncodingRequest(BaseModel):
     data: Union[str, List[str]]
-    encoder: Literal["sbert", "boe", "emb"]
+    encoder: Literal["sbert", "boe", "emb", "sif"]
 
 
 app = FastAPI()
@@ -32,7 +32,14 @@ async def encode(req: EncodingRequest):
             vector = SentBERTVectorizer().encode_many(req.data)
             return {"original": req.data, "encoded": vector.tolist()}
         elif isinstance(req.data, str):
-            vectors = SentBERTVectorizer().encode_many(req.data)
+            vectors = SentBERTVectorizer().embed(req.data)
+            return {"original": req.data, "encoded": vectors.tolist()}
+    if req.encoder == "sif":
+        if isinstance(req.data, list):
+            vector = SIFTextVectorizer().encode_many(req.data)
+            return {"original": req.data, "encoded": vector.tolist()}
+        elif isinstance(req.data, str):
+            vectors = SIFTextVectorizer().embed(req.data)
             return {"original": req.data, "encoded": vectors.tolist()}
     if req.encoder == "boe":
         if isinstance(req.data, list):

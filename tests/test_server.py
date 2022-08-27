@@ -18,24 +18,26 @@ class TestAPI(unittest.TestCase):
         self.route = f"{API_ENDPOINT}/encode"
 
     def test__can_vectorize_text_single(self):
-        text = "Some random text"
-        payload = {"data": text, "encoder": "sbert"}
-        response = requests.post(self.route, json=payload)
-        self.assertEqual(200, response.status_code)
-        data = response.json()
-        self.assertEqual(data["original"], text)
-        self.assertIsInstance(data["encoded"], list)
-        self.assertTrue(all(isinstance(x, float) for x in data["encoded"]))
+        for encoder in ["sbert", "sif"]:
+            text = "Some random text"
+            payload = {"data": text, "encoder": encoder}
+            response = requests.post(self.route, json=payload)
+            self.assertEqual(200, response.status_code)
+            data = response.json()
+            self.assertEqual(data["original"], text)
+            self.assertIsInstance(data["encoded"], list)
+            self.assertTrue(all(isinstance(x, float) for x in data["encoded"]))
 
     def test__can_vectorize_text_multiple(self):
-        texts = ["Some random text", "Another random piece of text"]
-        payload = {"data": texts, "encoder": "sbert"}
-        response = requests.post(self.route, json=payload)
-        self.assertEqual(200, response.status_code)
-        data = response.json()
-        self.assertEqual(data["original"], texts)
-        self.assertIsInstance(data["encoded"], list)
-        self.assertTrue(all(isinstance(x, list) for x in data["encoded"]))
+        for encoder in ["sbert", "sif"  ]:
+            texts = ["Some random text", "Another random piece of text"]
+            payload = {"data": texts, "encoder": encoder}
+            response = requests.post(self.route, json=payload)
+            self.assertEqual(200, response.status_code)
+            data = response.json()
+            self.assertEqual(data["original"], texts)
+            self.assertIsInstance(data["encoded"], list)
+            self.assertTrue(all(isinstance(x, list) for x in data["encoded"]))
 
     def test__can_create_bag_of_entities(self):
         text = "The present invention describes a computer for playing games."
