@@ -8,19 +8,27 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import os
+from pathlib import Path
 import uvicorn
 from fastapi import FastAPI, Response
 from typing import Union, List, Literal
 from pydantic import BaseModel
+
+from core.encoders import BagOfEntitiesEncoder
 from core.vectorizers import (
     SentBERTVectorizer,
     SIFTextVectorizer,
-    BagOfEntitiesEncoder
+    EmbeddingMatrix
 )
 
+BASE_DIR = str(Path(__file__).parent.resolve())
+ASSETS_DIR = f"{BASE_DIR}/assets"
+
 txt_file = f"{ASSETS_DIR}/entities.txt"
+npy_file = f"{ASSETS_DIR}/entities.npy"
 blklst_file = f"{ASSETS_DIR}/entities_blacklist.txt"
 default_boe_encoder = BagOfEntitiesEncoder.from_vocab_file(txt_file, blklst_file)
+default_embedding_matrix = EmbeddingMatrix.from_txt_npy(txt_file, npy_file)
 
 class EncodingRequest(BaseModel):
     data: Union[str, List[str]]
