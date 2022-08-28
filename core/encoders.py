@@ -21,6 +21,7 @@ class Encoder:
     def __init__(self, fn=None):
         self._encoder_fn = fn
         self._name = "Encoder"
+        self._input_validation_fn = lambda x: True
 
     def set_encoding_fn(self, fn):
         """

@@ -1,6 +1,7 @@
 import unittest
 import requests
 import os
+import socket
 from dotenv import load_dotenv
 from pathlib import Path
 
@@ -12,7 +13,14 @@ HOST = "localhost"
 PORT = os.environ["PORT"]
 API_ENDPOINT = "{}://{}:{}".format(PROTOCOL, HOST, PORT)
 
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server_not_running = sock.connect_ex((HOST, int(PORT))) != 0
 
+if server_not_running:
+    print("Server is not running. API tests will be skipped.")
+
+
+@unittest.skipIf(server_not_running, "Works only when true")
 class TestAPI(unittest.TestCase):
     def setUp(self):
         self.route = f"{API_ENDPOINT}/encode"
