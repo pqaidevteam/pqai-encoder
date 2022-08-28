@@ -231,8 +231,9 @@ def get_faln(authors):
 
 class Singleton(type):
     """
-        This is Singleton metaclass for making Singleton Classes
+    This is Singleton metaclass for making Singleton Classes
     """
+
     _instances = {}
 
     def __call__(cls, *args, **kwargs):

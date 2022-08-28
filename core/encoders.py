@@ -24,13 +24,13 @@ class Encoder:
 
     def set_encoding_fn(self, fn):
         """
-            Setting encoder function
+        Setting encoder function
         """
         self._encoder_fn = fn
 
     def set_input_validation_fn(self, fn):
         """
-            Setting input function
+        Setting input function
         """
         self._input_validation_fn = fn
 
@@ -65,7 +65,6 @@ class Encoder:
 
 
 class BagOfEntitiesEncoder(Encoder):
-
     def __init__(self):
         super().__init__()
         self._name = "BagOfEntitiesEncoder"
@@ -210,16 +209,16 @@ class EmbeddingMatrix:
     @classmethod
     def from_txt_npy(cls, txt_filepath, npy_filepath):
         """Create an `EmbeddingMatrix` from an items file containing the
-		a list of item descriptions (one per line) and a numpy file with
-		the vectors that have one-to-one correspondance with the items.
+        a list of item descriptions (one per line) and a numpy file with
+        the vectors that have one-to-one correspondance with the items.
 
-		Args:
-		    txt_filepath (str): Path to items file
-		    npy_filepath (str): Path to numpy (vectors) file
+        Args:
+            txt_filepath (str): Path to items file
+            npy_filepath (str): Path to numpy (vectors) file
 
-		Returns:
-		    EmbeddingMatrix: Resulting embedding matrix object
-		"""
+        Returns:
+            EmbeddingMatrix: Resulting embedding matrix object
+        """
         with open(txt_filepath) as file:
             items = [l.strip() for l in file if l.strip()]
         vectors = np.load(npy_filepath)
@@ -232,12 +231,12 @@ class EmbeddingMatrix:
                 contain the vector components. All columns should be separated
         by single tabs.
 
-		Args:
-		    filepath (str): Path to tsv (tab separated values) file
+                Args:
+                    filepath (str): Path to tsv (tab separated values) file
 
-		Returns:
-		    EmbeddingMatrix: Resulting embedding matrix object
-		"""
+                Returns:
+                    EmbeddingMatrix: Resulting embedding matrix object
+        """
         pairs = cls._parse_tsv_file(filepath)
         items = [word for word, _ in pairs]
         vectors = np.array([vector for _, vector in pairs])
@@ -259,10 +258,11 @@ class EmbeddingMatrix:
 
 class BagOfVectorsEncoder(Encoder):
     """
-        This class is a bag of words encoder class extending Encoder class.
+    This class is a bag of words encoder class extending Encoder class.
 
-        
+
     """
+
     def __init__(self, emb_matrix):
         super().__init__()
         self._emb_matrix = emb_matrix
@@ -282,11 +282,12 @@ class BagOfVectorsEncoder(Encoder):
 
 class BagOfWordsEncoder(Encoder):
     """
-        This class is a bag of words encoder class extending Encoder class.
+    This class is a bag of words encoder class extending Encoder class.
 
-        A text is represented as the bag of its words,
-        disregarding grammar and even word order but keeping multiplicity.
+    A text is represented as the bag of its words,
+    disregarding grammar and even word order but keeping multiplicity.
     """
+
     def __init__(self, fn=None):
         super().__init__(fn)
         self._name = "BagOfTokensEncoder"
@@ -295,17 +296,18 @@ class BagOfWordsEncoder(Encoder):
 
 class VectorSequenceEncoder:
     """
-        This class is Vector sequence encoder class extending Encoder class.
-        Yet to be implemented.
+    This class is Vector sequence encoder class extending Encoder class.
+    Yet to be implemented.
     """
 
 
 class TokenSequenceEncoder(Encoder):
     """
-        This is a Token Sequence encoder class extending Encoder class.
+    This is a Token Sequence encoder class extending Encoder class.
 
-        Token is a sequence of characters in text that are grouped together as a useful sematic unit
+    Token is a sequence of characters in text that are grouped together as a useful sematic unit
     """
+
     def __init__(self, fn=None):
         super().__init__(fn)
         self._name = "TokenSequenceEncoder"

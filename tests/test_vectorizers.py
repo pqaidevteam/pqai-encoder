@@ -13,14 +13,10 @@ load_dotenv(ENV_FILE)
 
 sys.path.append(BASE_DIR)
 
-from core.vectorizers import (
-    SIFTextVectorizer,
-    SentBERTVectorizer,
-    CPCVectorizer
-)
+from core.vectorizers import SIFTextVectorizer, SentBERTVectorizer, CPCVectorizer
+
 
 class TestSIFTextVectorizer(unittest.TestCase):
-
     def test__can_encode_one(self):
         sent = "This invention is a mouse trap."
         output = SIFTextVectorizer().embed(sent)
@@ -31,7 +27,7 @@ class TestSIFTextVectorizer(unittest.TestCase):
     def test__can_encode_multiple(self):
         sents = [
             "This invention is a mouse trap.",
-            "This invention presents a bird cage."
+            "This invention presents a bird cage.",
         ]
         output = SIFTextVectorizer().encode_many(sents)
         self.assertIsInstance(output, np.ndarray)
@@ -40,7 +36,6 @@ class TestSIFTextVectorizer(unittest.TestCase):
 
 
 class TestSentBERTVectorizer(unittest.TestCase):
-
     def test__can_encode_one(self):
         sent = "This invention is a mouse trap."
         output = SentBERTVectorizer().embed(sent)
@@ -51,7 +46,7 @@ class TestSentBERTVectorizer(unittest.TestCase):
     def test__can_encode_multiple(self):
         sents = [
             "This invention is a mouse trap.",
-            "This invention presents a bird cage."
+            "This invention presents a bird cage.",
         ]
         output = SentBERTVectorizer().encode_many(sents)
         self.assertIsInstance(output, np.ndarray)
@@ -60,7 +55,6 @@ class TestSentBERTVectorizer(unittest.TestCase):
 
 
 class TestCPCVectorizer(unittest.TestCase):
-
     def test__can_encode_one(self):
         cpc = "H04W52/02"
         output = CPCVectorizer().embed(cpc)
@@ -74,6 +68,7 @@ class TestCPCVectorizer(unittest.TestCase):
         self.assertIsInstance(output, np.ndarray)
         self.assertEqual(len(output.shape), 2)
         self.assertGreater(output.shape[1], 0)
+
 
 if __name__ == "__main__":
     unittest.main()

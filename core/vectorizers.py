@@ -12,7 +12,6 @@ models_dir = "{}/assets".format(BASE_DIR)
 
 
 class Vectorizer(Encoder):
-
     def __init__(self):
         super().__init__()
         self._name = "Vectorizer"

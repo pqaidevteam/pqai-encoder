@@ -29,7 +29,7 @@ class TestAPI(unittest.TestCase):
             self.assertTrue(all(isinstance(x, float) for x in data["encoded"]))
 
     def test__can_vectorize_text_multiple(self):
-        for encoder in ["sbert", "sif"  ]:
+        for encoder in ["sbert", "sif"]:
             texts = ["Some random text", "Another random piece of text"]
             payload = {"data": texts, "encoder": encoder}
             response = requests.post(self.route, json=payload)
