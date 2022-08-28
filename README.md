@@ -4,7 +4,20 @@ _Note: This repository is under activity development and not ready for productio
 
 # PQAI Encoder (WIP)
 
-PQAI service for creating representations of items. Items can be things like text or patent classification codes (e.g. CPC). Representations can be high-dimensional embeddings, bag of words, etc.
+PQAI service for transforming data into representations suitable as inputs for machine-learning pipelines. For example, transforming a piece of text into an embedding in a high-dimensional vector space.
+
+The following representations are supported at the moment:
+
+1. Text -> Dense embedding
+1. Text -> Sequence of word vectors
+1. Text -> Bag of entities
+
+## Routes
+
+| Method | Route     | Description                            |
+| ------ | --------- | -------------------------------------- |
+| `POST` | `/encode` | Returns a representation of given data |
+
 
 ## License
 
