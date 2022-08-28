@@ -1,143 +1,135 @@
-import unittest
+"""Tests for the code in `core/encoders.py`
 
+Attributes:
+    BASE_DIR (str): Absolute path to application's base directory
+    TEST_DIR (str): Absolute path to the test directory
+    ENV_PATH (str): Absolute apth to .env file
+"""
+import unittest
+import os
 import sys
 from pathlib import Path
+from dotenv import load_dotenv
 
-test_dir = str(Path(__file__).parent.resolve())
-BASE_DIR = Path(__file__).parent.parent
-sys.path.append(str(BASE_DIR.resolve()))
+TEST_DIR = str(Path(__file__).parent.resolve())
+BASE_DIR = str(Path(__file__).parent.parent.resolve())
+ENV_PATH = "{}/.env".format(BASE_DIR)
 
-from core.encoders import Encoder
-from core.encoders import BagOfEntitiesEncoder
-from core.encoders import EmbeddingMatrix
-from core.encoders import BagOfVectorsEncoder
+load_dotenv(ENV_PATH)
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
+sys.path.append(BASE_DIR)
+from core.encoders import Encoder, BagOfEntitiesEncoder
+
+
+class Text2CharTestEncoder(Encoder):
+
+    """A dummy implementation of `Encoder` for testing
+    """
+
+    def encoder_fn(self, string: str):
+        """Concrete implementation of the encoding function"""
+        return list(string)
+
+    def is_valid_input(self, string: str):
+        """Check if the given input is encodable"""
+        return isinstance(string, str)
 
 
 class TestEncoderClass(unittest.TestCase):
+
+    """Test the inherent functionality of abstract `Encoder`
+
+    Attributes:
+        encoder (`Text2CharTestEncoder`): Dummy encoder
+    """
+
     def setUp(self):
-        self.dummy_encoder_fn = lambda string: list(string)
+        """Instantiate an concrete `Encoder` for testing"""
+        self.encoder = Text2CharTestEncoder()
 
-    def test_encoder_operation(self):
-        encoder = Encoder(self.dummy_encoder_fn)
+    def test__can_create_working_concrete_encoder_from_abstract(self):
+        """Should return valid encoded data"""
         data = "hello"
         expected = ["h", "e", "l", "l", "o"]
-        actual = encoder.encode(data)
+        actual = self.encoder.encode(data)
         self.assertEqual(expected, actual)
 
-    def test_can_set_encoding_fn_afterwards(self):
-        encoder = Encoder()
-        encoder.set_encoding_fn(list)
-        data = "hello"
-        expected = ["h", "e", "l", "l", "o"]
-        actual = encoder.encode(data)
-        self.assertEqual(expected, actual)
-
-    def test_encoder_operation_without_encoder_fn(self):
-        def encode():
-            encoder = Encoder()
-            return encoder.encode("hello")
-
-        self.assertRaises(Exception, encode)
-
-    def test_input_validation(self):
-        fn = lambda x: isinstance(x, str)
-        encoder = Encoder(list)
-        encoder.set_input_validation_fn(fn)
-        a = encoder.can_encode("hello")
-        b = encoder.can_encode([0, 2, 3])
-        self.assertEqual((True, False), (a, b))
-
-    def test_can_encode_array_of_items(self):
-        encoder = Encoder(list)
-        inputs = ["hi", "hello"]
+    def test__can_encode_multiple_items(self):
+        """Should return valid encoded data for each input item
+        """
+        data = ["hi", "hello"]
         expected = [list("hi"), list("hello")]
-        actual = encoder.encode_many(inputs)
+        actual = self.encoder.encode_many(data)
         self.assertEqual(expected, actual)
 
+    def test__raises_exception_on_invalid_input_data(self):
+        """Should raise error if an integer or list is given for encoding
+        """
+        attempt = lambda: self.encoder.encode(1)
+        self.assertRaises(Exception, attempt)
+        attempt = lambda: self.encoder.encode(["something"])
+        self.assertRaises(Exception, attempt)
 
-class TestBagOfEntitiesEncoderClass(unittest.TestCase):
+
+class TestBagOfEntitiesEncoder(unittest.TestCase):
+
+    """Test functionality of `BagOfEntitiesEncoder`
+
+    Attributes:
+        encoder (`BagOfEntitiesEncoder`): An instance of encoder to be tested
+    """
+
     def setUp(self):
-        file = f"{test_dir}/test_entities.vocab"
-        self.boe_encoder = BagOfEntitiesEncoder.from_vocab_file(file)
+        """Instantiate an encoder from test vocab file
+        """
+        file = f"{TEST_DIR}/test_entities.vocab"
+        self.encoder = BagOfEntitiesEncoder.from_vocab_file(file)
 
-    def test_can_encode_string(self):
-        res = self.boe_encoder.can_encode("This is a sample text.")
-        self.assertTrue(res)
-
-    def test_can_encode_array(self):
-        res = self.boe_encoder.can_encode([1, 2, 3])
-        self.assertFalse(res)
-
-    def test_extract_entities_from_one_sentence(self):
+    def test__can_encode_a_sentence(self):
+        """Should be able to extract entities from a given sentence
+        """
         sent = "base station and mobile station"
         expected = set(["base station", "mobile station"])
-        actual = self.boe_encoder.encode(sent)
+        actual = self.encoder.encode(sent)
         self.assertEqual(expected, actual)
 
-    def test_extract_entities_from_two_sentences(self):
+    def test__can_encode_multi_sentence_text(self):
+        """Should respect sentence boundaries when extracting entities
+        """
         sents = "Base station and mobile. Station is there."
         expected = set(["base station"])
-        actual = self.boe_encoder.encode(sents)
+        actual = self.encoder.encode(sents)
         self.assertEqual(expected, actual)
 
-    def test_with_string_devoid_of_entities(self):
+    def test__can_encode_a_string_devoid_of_entities(self):
+        """Should return an empty set when there are no entities in given text
+        """
         trivial_string = "the of and"
-        actual = self.boe_encoder.encode(trivial_string)
+        actual = self.encoder.encode(trivial_string)
         self.assertEqual(set(), actual)
 
-    def test_with_degenerate_string(self):
+    def test__can_encode_a_degenerate_string(self):
+        """Should return empty set when empty string is encoded
+        """
         null_string = ""
-        actual = self.boe_encoder.encode(null_string)
+        actual = self.encoder.encode(null_string)
         self.assertEqual(set(), actual)
 
-    def test_captures_hyphenated_entities(self):
+    def test__can_capture_hyphenated_entities(self):
+        """Should respect hyphens, e.g., x-ray
+        """
         string = "This is an X-ray machine."
         expected = set(["x-ray"])
-        actual = self.boe_encoder.encode(string)
+        actual = self.encoder.encode(string)
         self.assertEqual(expected, actual)
 
-
-class TestEmbeddingMatrixClass(unittest.TestCase):
-    def setUp(self):
-        file = f"{test_dir}/test_embs.tsv"
-        self.emb = EmbeddingMatrix.from_tsv(file)
-
-    def test_get_embedding_by_word(self):
-        item = "base"
-        expected_emb = [1.0, 0.0]
-        actual_emb = list(self.emb[item])
-        self.assertEqual(expected_emb, actual_emb)
-
-    def test_can_get_dimensions(self):
-        n_dim = self.emb.dims
-        self.assertEqual(2, n_dim)
-
-    def test_similar_items(self):
-        item = "station"
-        similars = self.emb.similar_to_item(item)
-        most_similar = similars[1]  # [0] is the item itself
-        self.assertEqual("stations", most_similar)
-
-    def test_whether_item_exists_in_matrix(self):
-        a = "station" in self.emb
-        b = "stationary" in self.emb
-        self.assertTrue(a)
-        self.assertFalse(b)
-
-
-class TestBagOfVectorsEncoder(unittest.TestCase):
-    def setUp(self):
-        emb_matrix_file = f"{test_dir}/test_embs.tsv"
-        emb_matrix = EmbeddingMatrix.from_tsv(emb_matrix_file)
-        self.encoder = BagOfVectorsEncoder(emb_matrix)
-
-    def test_can_encode_simple_entity_set(self):
-        entities = set(["base", "station"])
-        base_vec = tuple([1.0, 0.0])
-        station_vec = tuple([0.1, 2.0])
-        expected_bov = set([base_vec, station_vec])
-        bov = self.encoder.encode(entities)
-        self.assertEqual(expected_bov, bov)
+    def test__error_when_invalid_input(self):
+        """Should throw an error when an invalid input is given for encoding
+        """
+        data = [1, 2, 3]
+        attempt = lambda: self.encoder.encode(data)
+        self.assertRaises(Exception, attempt)
 
 
 if __name__ == "__main__":

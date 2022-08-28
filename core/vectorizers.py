@@ -151,3 +151,130 @@ class SIFTextVectorizer(Vectorizer, metaclass=Singleton):
         pc = svd.components_
         X = X - X.dot(pc.transpose()) * pc
         return X
+
+
+class EmbeddingMatrix:
+
+    """An EmbeddingMatrix is a dictionary-like structure, where keys are item
+        identifiers (labels) and values are their vectors (embeddings).
+    """
+
+    def __init__(self, labels, vectors):
+        self._labels = labels
+        self._lut = {w: i for i, w in enumerate(self._labels)}
+        self._vectors = vectors
+        self._unit_vectors = self._create_unit_vectors()
+
+    @property
+    def dims(self):
+        vec = self._vectors[0]
+        return len(vec)
+
+    def __getitem__(self, item):
+        idx = self._lut[item]
+        return self._vectors[idx]
+
+    def __contains__(self, item):
+        return item in self._lut
+
+    def similar_to_item(self, item, n=10, dist="cosine"):
+        idx = self._lut[item]
+        vector = self._unit_vectors[idx]
+        return self.similar_to_vector(vector, n)
+
+    def similar_to_vector(self, vector, n=10, dist="cosine"):
+        if dist == "cosine":
+            dists = self._cosine_dists(vector, self._unit_vectors)
+        elif dist == "euclidean":
+            dists = self._euclid_dists(vector, self._vectors)
+        elif dist == "dot":
+            dists = self._dot_prods(vector, self._vectors)
+        idxs = np.argsort(dists)[:n]
+        return [self._labels[i] for i in idxs]
+
+    def _euclid_dists(self, a, b):
+        d = a - b
+        return np.sum(d * d, axis=1)
+
+    def _cosine_dists(self, a, b):
+        return 1 - np.dot(a, b.T)
+
+    def _dot_prods(self, a, b):
+        return -np.dot(a, b.T)
+
+    def _create_unit_vectors(self):
+        return normalize_rows(self._vectors)
+
+    @classmethod
+    def from_txt_npy(cls, txt_filepath, npy_filepath):
+        """Create an `EmbeddingMatrix` from an items file containing the
+        a list of item descriptions (one per line) and a numpy file with
+        the vectors that have one-to-one correspondance with the items.
+
+        Args:
+            txt_filepath (str): Path to items file
+            npy_filepath (str): Path to numpy (vectors) file
+
+        Returns:
+            EmbeddingMatrix: Resulting embedding matrix object
+        """
+        with open(txt_filepath) as file:
+            items = [l.strip() for l in file if l.strip()]
+        vectors = np.load(npy_filepath)
+        return EmbeddingMatrix(items, vectors)
+
+    @classmethod
+    def from_tsv(cls, filepath):
+        """Create an `EmbeddingMatrix` from a tsv file where the first
+                column contains the item descriptions and subsequent columns
+                contain the vector components. All columns should be separated
+        by single tabs.
+
+                Args:
+                    filepath (str): Path to tsv (tab separated values) file
+
+                Returns:
+                    EmbeddingMatrix: Resulting embedding matrix object
+        """
+        pairs = cls._parse_tsv_file(filepath)
+        items = [word for word, _ in pairs]
+        vectors = np.array([vector for _, vector in pairs])
+        return EmbeddingMatrix(items, vectors)
+
+    @classmethod
+    def _parse_tsv_file(cls, filepath):
+        with open(filepath) as file:
+            lines = (l for l in file if l.strip())
+            pairs = [cls._parse_tsv_line(l) for l in lines]
+        return pairs
+
+    @classmethod
+    def _parse_tsv_line(cls, line):
+        [word, *vector] = line.strip().split("\t")
+        vector = [float(val) for val in vector]
+        return word, vector
+
+
+class BagOfVectorsEncoder(Encoder):
+    """
+    This class is a bag of words encoder class extending Encoder class.
+
+
+    """
+
+    def __init__(self, emb_matrix):
+        super().__init__()
+        self._emb_matrix = emb_matrix
+        self.encoder_fn = self._vectorize_items
+        self.is_valid_input = lambda x: isinstance(x, list)
+
+    def _vectorize_items(self, bag_of_items):
+        items = [item for item in bag_of_items if item in self._emb_matrix]
+        vectors = [self._emb_matrix[item] for item in items]
+        vectors_as_tuples = [tuple(vec) for vec in vectors]
+        return set(vectors_as_tuples)
+
+    @classmethod
+    def from_txt_npy(cls, txtfile, npyfile):
+        emb_matrix = EmbeddingMatrix.from_txt_npy(txtfile, npyfile)
+        return BagOfVectorsEncoder(emb_matrix)

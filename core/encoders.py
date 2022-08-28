@@ -1,117 +1,97 @@
 """
-    This is an encoders module contains different types of encoders
+This module defines encoders, which transform data into representations
+suitable as inputs for machine learning pipelines.
 """
 
 import re
 from pathlib import Path
-import numpy as np
-from core import utils
+from abc import ABC
+from core.utils import get_sentences
 from core.representations import BagOfEntities
 
 BASE_DIR = str(Path(__file__).parent.parent.resolve())
-models_dir = f"{BASE_DIR}/assets"
+ASSETS_DIR = f"{BASE_DIR}/assets"
 
 
-class Encoder:
+class Encoder(ABC):
 
-    """Base class for making objects that encode one form of data into
-    another form, e.g., text to tokens or text to vectors.
-    """
+    """An abstract encoder"""
 
-    def __init__(self, fn=None):
-        self._encoder_fn = fn
-        self._name = "Encoder"
-        self._input_validation_fn = lambda x: True
-
-    def set_encoding_fn(self, fn):
+    def encoder_fn(self, data):
+        """Encoder function. This is to be defined in concrete implementations
+            of an encoder, but should not be directly called while encoding.
+            Instead, the `encode` function should be called.
         """
-        Setting encoder function
-        """
-        self._encoder_fn = fn
+        raise NotImplementedError
 
-    def set_input_validation_fn(self, fn):
+    def is_valid_input(self, data):
+        """Validate that the given `data` is a compatible input for this
+            encoder. This function should be defined in a concrete
+            implementation of an encoder, but need not be called explicitly
+            while encoding. That's because when called `encode`, this check
+            is made automatically.
         """
-        Setting input function
-        """
-        self._input_validation_fn = fn
+        raise NotImplementedError
 
     def encode(self, item):
-        self._raise_exception_if_incompatible(item)
-        self._raise_exception_if_no_encoding_fn()
-        return self._encoder_fn(item)
+        """Return a representation of the given item. This function is to be
+            used for actual encoding operation, for it includes a validation
+            check on the input.
+        """
+        if not self.is_valid_input(item):
+            raise Exception(f"{self.__class__} cannot encode {type(item)}")
+        return self.encoder_fn(item)
 
     def encode_many(self, items):
+        """Return representations of the given array of items. This method can
+            be overridden whereever there is a way to speed up the encoding
+            beyond mere list comprehension, e.g., using some form of parallel or
+            batch processing technique.
+
+            The returned representations should have some information (explicit
+            or implicit) that maps input to outputs. For example, returning the
+            representations in the same order as the inputs, or returning a
+            dictionary with input:representation as key:value pairs.
+        """
         return [self.encode(item) for item in items]
-
-    def can_encode(self, data):
-        if not callable(self._input_validation_fn):
-            raise Exception(f"{self._name} has no input checking method")
-        return self._input_validation_fn(data)
-
-    def _raise_invalid_encoder_fn_exception(self):
-        msg = f"{self._name} does not have valid encoding function."
-        raise Exception(msg)
-
-    def _raise_invalid_input_data_exception(self, item):
-        msg = f"Invalid input data for {self._name}: {type(item)}"
-        raise Exception(msg)
-
-    def _raise_exception_if_no_encoding_fn(self):
-        if not callable(self._encoder_fn):
-            self._raise_invalid_encoder_fn_exception()
-
-    def _raise_exception_if_incompatible(self, item):
-        if not self.can_encode(item):
-            self._raise_invalid_input_data_exception(item)
 
 
 class BagOfEntitiesEncoder(Encoder):
-    def __init__(self):
+
+    """Converts a piece of text into a set (bag) of entities"""
+
+    def __init__(self, vocab: list):
+        """Initialize"""
         super().__init__()
-        self._name = "BagOfEntitiesEncoder"
-        self.set_encoding_fn(self._get_entities)
-        self.set_input_validation_fn(lambda x: isinstance(x, str))
-        self._vocab_file = None
-        self._vocab = None
-        self._lookup_table = None
-        self._no_casing = True
-        self._maxlen = 3
-        self._separator = " "
-        self._sent_tokenizer = utils.get_sentences
-        self._non_overlapping = True
-        self._blacklist = set()
+        self._vocab = vocab
+        self._lut = set(vocab)  # look up table
+        self._cased = False  # case sensitive when True
+        self._sep = " "  # separator
+        self._maxlen = 3  # no. of words in longest entity
+        self._no_overlap = True
 
-    def set_maxlen(self, n):
-        self._maxlen = n
+    def is_valid_input(self, data):
+        """Return True if `data` is encodable"""
+        return isinstance(data, str)
 
-    def set_separator(self, sep):
-        self._separator = sep
-
-    def _load_vocab(self):
-        with open(self._vocab_file) as fp:
-            self._vocab = fp.read().strip().splitlines()
-            self._lookup_table = set(self._vocab)
-            self._load_blacklist()
-
-    def _load_vocab_if_unloaded(self):
-        if not isinstance(self._vocab, list):
-            self._load_vocab()
-
-    def _get_entities(self, text):
-        self._load_vocab_if_unloaded()
+    def encoder_fn(self, text: str):
+        """Encode given `text` as a bag of entities"""
         entities = []
-        for sent in self._sent_tokenizer(text):
+        for sent in get_sentences(text):
             entities += self._get_entities_from_sentence(sent)
-        entities = {e for e in entities if not self._in_blacklist(e)}
-        if self._non_overlapping:
+        if self._no_overlap:
             entities = BagOfEntities(entities).non_overlapping()
         return entities
 
-    def _get_entities_from_sentence(self, sentence):
+    def _get_entities_from_sentence(self, sentence: str):
+        """Extract entities from a given sentence"""
         candidates = self._get_candidate_entities(sentence)
-        return [c for c in candidates if c in self._lookup_table]
+        return [c for c in candidates if c in self._lut]
 
     def _get_candidate_entities(self, sent):
+        """Extract potential entity candidates (some of the candidates may not
+            make sense but they will be filtered out later)
+        """
         candidates = set()
         tokens = self._tokenize(sent)
         for n in range(1, self._maxlen + 1):
@@ -119,204 +99,35 @@ class BagOfEntitiesEncoder(Encoder):
                 candidates.add(n_gram)
         return candidates
 
-    def _get_n_grams(self, n, tokens):
+    def _get_n_grams(self, n: int, tokens: list):
+        """Return all possible 1, 2, ..., n-grams created from given `tokens`"""
         if len(tokens) < n:
             return []
-        sep = self._separator
+        sep = self._sep
         n_grams = [sep.join(tokens[i : i + n]) for i in range(len(tokens))]
         return n_grams
 
-    def _tokenize(self, text):
-        text = text.lower() if self._no_casing else text
+    def _tokenize(self, text: str):
+        """Split `text` into words"""
+        text = text if self._cased else text.lower()
         pattern = r"([\w\-]+|\W+)"
         matches = re.findall(pattern, text)
         tokens = [m for m in matches if m.strip()]
         return tokens
 
-    def _in_blacklist(self, entity):
-        return bool(entity in self._blacklist)
-
-    def _load_blacklist(self):
-        with open(f"{models_dir}/entities_blacklist.txt") as file:
-            self._blacklist = set(file.read().strip().splitlines())
-
     @classmethod
-    def from_vocab_file(cls, filepath):
-        encoder = BagOfEntitiesEncoder()
-        encoder._vocab_file = filepath
-        return encoder
+    def from_vocab_file(cls, vocab_file: str, blklst_file: str = None):
+        """Instantiate from a text file containing entities (one per line)"""
+        blacklist = set()
+        if blklst_file:
+            blacklist = set(cls._read_vocab(blklst_file))
+        vocab = cls._read_vocab(vocab_file)
+        vocab = [e for e in vocab if e not in blacklist]
+        return BagOfEntitiesEncoder(vocab)
 
-
-class EmbeddingMatrix:
-
-    """A wrapper on a collection of items and their embeddings. It
-    provides easy retrieval of embedding of any vector and retrieval of
-    items similar to a given item on the basis of the similarity of their
-    vectors.
-
-    It can be used to store such data as word, entity, or document
-    embeddings.
-    """
-
-    def __init__(self, items, vectors):
-        self._items = items
-        self._vectors = vectors
-        self._lookup = self._create_lookup()
-        self._unit_vectors = self._create_unit_vectors()
-
-    @property
-    def dims(self):
-        vec = self._vectors[0]
-        return len(vec)
-
-    def __getitem__(self, item):
-        idx = self._lookup[item]
-        return self._vectors[idx]
-
-    def __contains__(self, item):
-        return item in self._lookup
-
-    def similar_to_item(self, item, n=10, dist="cosine"):
-        idx = self._lookup[item]
-        vector = self._unit_vectors[idx]
-        return self.similar_to_vector(vector, n)
-
-    def similar_to_vector(self, vector, n=10, dist="cosine"):
-        if dist == "cosine":
-            dists = self._cosine_dists(vector, self._unit_vectors)
-        elif dist == "euclidean":
-            dists = self._euclid_dists(vector, self._vectors)
-        elif dist == "dot":
-            dists = self._dot_prods(vector, self._vectors)
-        idxs = np.argsort(dists)[:n]
-        return [self._items[i] for i in idxs]
-
-    def _euclid_dists(self, a, b):
-        d = a - b
-        return np.sum(d * d, axis=1)
-
-    def _cosine_dists(self, a, b):
-        return 1 - np.dot(a, b.T)
-
-    def _dot_prods(self, a, b):
-        return -np.dot(a, b.T)
-
-    def _create_lookup(self):
-        return {w: i for i, w in enumerate(self._items)}
-
-    def _create_unit_vectors(self):
-        return utils.normalize_rows(self._vectors)
-
-    @classmethod
-    def from_txt_npy(cls, txt_filepath, npy_filepath):
-        """Create an `EmbeddingMatrix` from an items file containing the
-        a list of item descriptions (one per line) and a numpy file with
-        the vectors that have one-to-one correspondance with the items.
-
-        Args:
-            txt_filepath (str): Path to items file
-            npy_filepath (str): Path to numpy (vectors) file
-
-        Returns:
-            EmbeddingMatrix: Resulting embedding matrix object
-        """
-        with open(txt_filepath) as file:
-            items = [l.strip() for l in file if l.strip()]
-        vectors = np.load(npy_filepath)
-        return EmbeddingMatrix(items, vectors)
-
-    @classmethod
-    def from_tsv(cls, filepath):
-        """Create an `EmbeddingMatrix` from a tsv file where the first
-                column contains the item descriptions and subsequent columns
-                contain the vector components. All columns should be separated
-        by single tabs.
-
-                Args:
-                    filepath (str): Path to tsv (tab separated values) file
-
-                Returns:
-                    EmbeddingMatrix: Resulting embedding matrix object
-        """
-        pairs = cls._parse_tsv_file(filepath)
-        items = [word for word, _ in pairs]
-        vectors = np.array([vector for _, vector in pairs])
-        return EmbeddingMatrix(items, vectors)
-
-    @classmethod
-    def _parse_tsv_file(cls, filepath):
-        with open(filepath) as file:
-            lines = (l for l in file if l.strip())
-            pairs = [cls._parse_tsv_line(l) for l in lines]
-        return pairs
-
-    @classmethod
-    def _parse_tsv_line(cls, line):
-        [word, *vector] = line.strip().split("\t")
-        vector = [float(val) for val in vector]
-        return word, vector
-
-
-class BagOfVectorsEncoder(Encoder):
-    """
-    This class is a bag of words encoder class extending Encoder class.
-
-
-    """
-
-    def __init__(self, emb_matrix):
-        super().__init__()
-        self._emb_matrix = emb_matrix
-        self.set_encoding_fn(self._vectorize_items)
-
-    def _vectorize_items(self, bag_of_items):
-        items = [item for item in bag_of_items if item in self._emb_matrix]
-        vectors = [self._emb_matrix[item] for item in items]
-        vectors_as_tuples = [tuple(vec) for vec in vectors]
-        return set(vectors_as_tuples)
-
-    @classmethod
-    def from_txt_npy(cls, txtfile, npyfile):
-        emb_matrix = EmbeddingMatrix.from_txt_npy(txtfile, npyfile)
-        return BagOfVectorsEncoder(emb_matrix)
-
-
-class BagOfWordsEncoder(Encoder):
-    """
-    This class is a bag of words encoder class extending Encoder class.
-
-    A text is represented as the bag of its words,
-    disregarding grammar and even word order but keeping multiplicity.
-    """
-
-    def __init__(self, fn=None):
-        super().__init__(fn)
-        self._name = "BagOfTokensEncoder"
-        self._input_validation_fn = lambda x: isinstance(x, str)
-
-
-class VectorSequenceEncoder:
-    """
-    This class is Vector sequence encoder class extending Encoder class.
-    Yet to be implemented.
-    """
-
-
-class TokenSequenceEncoder(Encoder):
-    """
-    This is a Token Sequence encoder class extending Encoder class.
-
-    Token is a sequence of characters in text that are grouped together as a useful sematic unit
-    """
-
-    def __init__(self, fn=None):
-        super().__init__(fn)
-        self._name = "TokenSequenceEncoder"
-        self._input_validation_fn = lambda x: isinstance(x, str)
-
-
-txt_file = models_dir.rstrip("/") + "/entities.txt"
-npy_file = models_dir.rstrip("/") + "/entities.npy"
-default_embedding_matrix = EmbeddingMatrix.from_txt_npy(txt_file, npy_file)
-default_boe_encoder = BagOfEntitiesEncoder.from_vocab_file(txt_file)
-default_bov_encoder = BagOfVectorsEncoder(default_embedding_matrix)
+    @staticmethod
+    def _read_vocab(file: str):
+        """"Read entities from a text file (one entity per line)"""
+        with open(file, "r") as f:
+            vocab = f.read().strip().splitlines()
+        return vocab

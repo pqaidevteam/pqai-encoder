@@ -12,9 +12,15 @@ import uvicorn
 from fastapi import FastAPI, Response
 from typing import Union, List, Literal
 from pydantic import BaseModel
-from core.vectorizers import SentBERTVectorizer, SIFTextVectorizer
-from core.encoders import default_boe_encoder, default_embedding_matrix
+from core.vectorizers import (
+    SentBERTVectorizer,
+    SIFTextVectorizer,
+    BagOfEntitiesEncoder
+)
 
+txt_file = f"{ASSETS_DIR}/entities.txt"
+blklst_file = f"{ASSETS_DIR}/entities_blacklist.txt"
+default_boe_encoder = BagOfEntitiesEncoder.from_vocab_file(txt_file, blklst_file)
 
 class EncodingRequest(BaseModel):
     data: Union[str, List[str]]
