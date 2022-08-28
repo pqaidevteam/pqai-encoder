@@ -5,7 +5,6 @@ suitable as inputs for machine learning pipelines.
 
 import re
 from pathlib import Path
-from abc import ABC
 from core.utils import get_sentences
 from core.representations import BagOfEntities
 
@@ -13,7 +12,7 @@ BASE_DIR = str(Path(__file__).parent.parent.resolve())
 ASSETS_DIR = f"{BASE_DIR}/assets"
 
 
-class Encoder(ABC):
+class Encoder:
 
     """An abstract encoder"""
 

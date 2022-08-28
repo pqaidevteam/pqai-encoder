@@ -1,156 +1,71 @@
-import re, json
-import numpy as np
+import re
+import json
 from pathlib import Path
+import numpy as np
 from sklearn.decomposition import TruncatedSVD
 from sentence_transformers import SentenceTransformer
 
-from core.utils import Singleton
+from core.utils import Singleton, normalize_rows
 from core.encoders import Encoder
 
 BASE_DIR = str(Path(__file__).parent.parent.resolve())
-models_dir = "{}/assets".format(BASE_DIR)
+ASSETS_DIR = f"{BASE_DIR}/assets"
 
 
 class Vectorizer(Encoder):
-    def __init__(self):
-        super().__init__()
-        self._name = "Vectorizer"
-        self._encoder_fn = self.embed
 
-    def _input_validation_fn(self, item):
+    """Abstract class for encoders that create vector representations"""
+
+    def is_valid_input(self, item):
         return isinstance(item, str)
 
-    def embed(self, item):
-        pass
-
     def encode_many(self, items):
-        return np.array([self.embed(item) for item in items])
+        return np.array([self.encode(item) for item in items])
 
 
 class SentBERTVectorizer(Vectorizer, metaclass=Singleton):
 
-    sentbert_model_path = models_dir.rstrip("/") + "/vectorizer_distilbert_poc/"
+    """SBERT Vectorizer"""
+
+    model_path = f"{ASSETS_DIR}/vectorizer_distilbert_poc"
 
     def __init__(self):
+        """Initialize"""
         super().__init__()
-        self._name = "SentBERTVectorizer"
-        self._model = None  # Lazy loads
+        self._model = SentenceTransformer(self.model_path)
 
-    def load(self):
-        self._model = SentenceTransformer(self.sentbert_model_path)
+    def encoder_fn(self, text: str):
+        """Create embedding for given text"""
+        return self._model.encode([text])[0]
 
-    def embed(self, text):
-        self._load_if_needed()
-        vec = self._model.encode([text])[0]
-        return vec
-
-    def encode_many(self, texts):
-        self._load_if_needed()
-        vecs = np.array(self._model.encode(texts))
-        return vecs
-
-    def _load_if_needed(self):
-        if self._model is None:
-            self.load()
+    def encode_many(self, texts: str):
+        """Create embeddings for each of a given array of texts"""
+        return self._model.encode(texts)
 
 
 class CPCVectorizer(Vectorizer, metaclass=Singleton):
 
-    cpc_list_file = models_dir.rstrip("/") + "/cpc_vectors_256d.items.json"
-    cpc_vecs_file = models_dir.rstrip("/") + "/cpc_vectors_256d.npy"
+    """Returns precomputed vector representations for CPC class codes"""
+
+    labels_file = f"{ASSETS_DIR}/cpc_vectors_256d.items.json"
+    vector_file = f"{ASSETS_DIR}/cpc_vectors_256d.npy"
 
     def __init__(self):
+        """Initialize"""
         super().__init__()
-        self._name = "CPCVectorizer"
-        with open(self.cpc_list_file) as file:
-            self.vocab = json.load(file)
-        self.lut = {cpc: i for (i, cpc) in enumerate(self.vocab)}
-        self.vecs = np.load(self.cpc_vecs_file)
-        self.dims = self.vecs.shape[1]
-        self.gray = 0.00001 * np.ones(self.dims)
+        with open(self.labels_file) as f:
+            self._vocab = json.load(f)
+            self._lut = {cpc: i for (i, cpc) in enumerate(self._vocab)}
+        self._vecs = np.load(self.vector_file)
+        self._dims = self._vecs.shape[1]
+        self._gray = 0.00001 * np.ones(self._dims)
 
-    def __getitem__(self, cpc_code):
-        if cpc_code not in self.lut:
-            return np.zeros(self.dims)
-        i = self.lut[cpc_code]
-        return self.vecs[i]
-
-    def embed(self, cpcs):
-        if not [cpc for cpc in cpcs if cpc in self.lut]:
-            return self.gray
-        cpc_vecs = [self[cpc] for cpc in cpcs if cpc in self.lut]
-        avg_cpc_vec = np.average(np.array(cpc_vecs), axis=0)
-        return avg_cpc_vec
-
-
-class SIFTextVectorizer(Vectorizer, metaclass=Singleton):
-
-    word_vecs_file = models_dir.rstrip("/") + "/glove-We.npy"
-    word_list_file = models_dir.rstrip("/") + "/glove-vocab.json"
-    word_freq_file = models_dir.rstrip("/") + "/dfs.json"
-
-    def __init__(self):
-        super().__init__()
-        self._name = "SIFTextVectorizer"
-
-        self.alpha = 0.015
-        self.vocab = self._read_json(self.word_list_file)
-        self.dfs = self._read_json(self.word_freq_file)
-        self.vecs = np.load(self.word_vecs_file)
-        self.lut = self._lookup_table()
-        self.sifs = [self._sif(w) for w in self.vocab]
-        self.dims = self.vecs.shape[1]
-        self.gray = 0.00001 * np.ones(self.dims)
-
-    def _read_json(self, filepath):
-        with open(filepath) as file:
-            return json.load(file)
-
-    def _lookup_table(self):
-        return {cpc: i for (i, cpc) in enumerate(self.vocab)}
-
-    def _sif(self, word):
-        if not word in self.dfs:
-            return 1.0
-        df = self.dfs[word]
-        df_max = self.dfs["the"] + 1
-        proba = df / df_max
-        return self.alpha / (self.alpha + proba)
-
-    def __getitem__(self, word):
-        if word not in self.lut:
-            return np.zeros(self.dims)
-        i = self.lut[word]
-        return self.vecs[i]
-
-    def tokenize(self, text):
-        words = re.findall(r"\w+", text.lower())
-        return words if words is not None else []
-
-    def embed(self, text, unique=True, remove_pc=False, average=False):
-        words = self.tokenize(text)
-        if not words:
-            return self.gray
-        if unique:
-            words = list(set(words))
-        idxs = [self.lut[w] for w in words if w in self.lut]
-        if not idxs:
-            return self.gray
-        if not average:
-            matrix = np.array([self.vecs[i] * self.sifs[i] for i in idxs])
-        else:
-            matrix = np.array([self.vecs[i] for i in idxs])
-        if remove_pc:
-            matrix = self.remove_first_pc(matrix)
-        vec = np.average(matrix, axis=0)
-        return vec
-
-    def remove_first_pc(self, X):
-        svd = TruncatedSVD(n_components=1, n_iter=7, random_state=0)
-        svd.fit(X)
-        pc = svd.components_
-        X = X - X.dot(pc.transpose()) * pc
-        return X
+    def encoder_fn(self, cpc: str):
+        """Return vector representation of the given cpc code"""
+        if cpc not in self._lut:
+            return self._gray
+        i = self._lut[cpc]
+        return self._vecs[i]
 
 
 class EmbeddingMatrix:
@@ -159,116 +74,178 @@ class EmbeddingMatrix:
         identifiers (labels) and values are their vectors (embeddings).
     """
 
-    def __init__(self, labels, vectors):
+    def __init__(self, labels: list, vectors: np.ndarray):
+        """Initialize"""
         self._labels = labels
-        self._lut = {w: i for i, w in enumerate(self._labels)}
+        self._lut = {w: i for i, w in enumerate(labels)}
         self._vectors = vectors
-        self._unit_vectors = self._create_unit_vectors()
+        self._unit_vectors = normalize_rows(self._vectors)
+        self._dists = {
+            "cosine": self._cosine_dists,
+            "euclidean": self._euclid_dists,
+            "dot": self._dot_prods
+        }
 
     @property
     def dims(self):
-        vec = self._vectors[0]
-        return len(vec)
+        """Dimensionality of embedding space"""
+        vector = self._vectors[0]
+        return len(vector)
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: str):
+        """Return embedding for a particular item (label)"""
         idx = self._lut[item]
         return self._vectors[idx]
 
     def __contains__(self, item):
+        """Check whether an embedding with given label is present"""
         return item in self._lut
 
     def similar_to_item(self, item, n=10, dist="cosine"):
+        """Return most similar items to the given item"""
         idx = self._lut[item]
         vector = self._unit_vectors[idx]
         return self.similar_to_vector(vector, n)
 
     def similar_to_vector(self, vector, n=10, dist="cosine"):
-        if dist == "cosine":
-            dists = self._cosine_dists(vector, self._unit_vectors)
-        elif dist == "euclidean":
-            dists = self._euclid_dists(vector, self._vectors)
-        elif dist == "dot":
-            dists = self._dot_prods(vector, self._vectors)
+        """Return most similar items to the given vector"""
+        dist_fn = self._dists[dist]
+        dists = dist_fn(vector, self._vectors)
         idxs = np.argsort(dists)[:n]
         return [self._labels[i] for i in idxs]
 
     def _euclid_dists(self, a, b):
+        """Return euclidean distance between the given vectors
+        """
         d = a - b
         return np.sum(d * d, axis=1)
 
     def _cosine_dists(self, a, b):
+        """Return cosine distance between the given vectors
+        """
         return 1 - np.dot(a, b.T)
 
     def _dot_prods(self, a, b):
+        """Return dot product between the given vectors
+        """
         return -np.dot(a, b.T)
 
-    def _create_unit_vectors(self):
-        return normalize_rows(self._vectors)
+    @classmethod
+    def from_txt_npy(cls, txt_file, npy_file):
+        """Create an `EmbeddingMatrix` from a labels file (one label per line)
+            and a .npy file (a 2d matrix)
+        """
+        with open(txt_file, "r") as file:
+            labels = [l.strip() for l in file if l.strip()]
+        vectors = np.load(npy_file)
+        return EmbeddingMatrix(labels, vectors)
 
     @classmethod
-    def from_txt_npy(cls, txt_filepath, npy_filepath):
-        """Create an `EmbeddingMatrix` from an items file containing the
-        a list of item descriptions (one per line) and a numpy file with
-        the vectors that have one-to-one correspondance with the items.
-
-        Args:
-            txt_filepath (str): Path to items file
-            npy_filepath (str): Path to numpy (vectors) file
-
-        Returns:
-            EmbeddingMatrix: Resulting embedding matrix object
+    def from_json_npy(cls, json_file, npy_file):
+        """Create an `EmbeddingMatrix` from a labels file (one label per line)
+            and a .npy file (a 2d matrix)
         """
-        with open(txt_filepath) as file:
-            items = [l.strip() for l in file if l.strip()]
-        vectors = np.load(npy_filepath)
-        return EmbeddingMatrix(items, vectors)
+        with open(json_file, "r") as f:
+            labels = json.load(f)
+        vectors = np.load(npy_file)
+        return EmbeddingMatrix(labels, vectors)
 
     @classmethod
     def from_tsv(cls, filepath):
         """Create an `EmbeddingMatrix` from a tsv file where the first
-                column contains the item descriptions and subsequent columns
-                contain the vector components. All columns should be separated
-        by single tabs.
-
-                Args:
-                    filepath (str): Path to tsv (tab separated values) file
-
-                Returns:
-                    EmbeddingMatrix: Resulting embedding matrix object
+            column contains the item descriptions and subsequent columns
+            contain the vector components. All columns should be separated
+            by single tabs.
         """
-        pairs = cls._parse_tsv_file(filepath)
-        items = [word for word, _ in pairs]
-        vectors = np.array([vector for _, vector in pairs])
-        return EmbeddingMatrix(items, vectors)
+        labels = []
+        vectors = []
+        f = open(filepath, "r")
+        for line in f:
+            if not line.strip():
+                continue
+            [label, *vector] = line.strip().split("\t")
+            vector = [float(val) for val in vector]
+            labels.append(label)
+            vectors.append(vector)
+        f.close()
+        return EmbeddingMatrix(labels, np.array(vectors))
 
-    @classmethod
-    def _parse_tsv_file(cls, filepath):
-        with open(filepath) as file:
-            lines = (l for l in file if l.strip())
-            pairs = [cls._parse_tsv_line(l) for l in lines]
-        return pairs
 
-    @classmethod
-    def _parse_tsv_line(cls, line):
-        [word, *vector] = line.strip().split("\t")
-        vector = [float(val) for val in vector]
-        return word, vector
+class SIFTextVectorizer(Vectorizer, metaclass=Singleton):
+
+    """Computes embeddings for text using SIF weighted word vectors"""
+
+    labels_file = f"{ASSETS_DIR}/glove-vocab.json"
+    vector_file = f"{ASSETS_DIR}/glove-We.npy"
+    dfs_file = f"{ASSETS_DIR}/dfs.json"
+
+    def __init__(self):
+        """Initialize"""
+        super().__init__()
+        self.alpha = 0.015
+        self.E = EmbeddingMatrix.from_json_npy(self.labels_file, self.vector_file)
+        with open(self.dfs_file, "r") as f:
+            self.dfs = json.load(f)
+            self.sifs = {w: self._sif(w) for w in self.dfs}
+        self.gray = 0.00001 * np.ones(self.E.dims)
+        self.unique = True
+        self.remove_pc = False
+
+    def encoder_fn(self, text: str):
+        """Return vector representation of the given text
+        """
+        words = self._tokenize(text)
+        if not words:
+            return self.gray
+        words = list(set(words)) if self.unique else words
+        words = [w for w in words if w in self.E]
+        M = np.array([self.E[w]*self.sifs[w] for w in words])
+        if self.remove_pc:
+            M = self.remove_first_pc(M)
+        vec = np.average(M, axis=0)
+        return vec
+
+    def _sif(self, word: str):
+        """Compute smooth inverse frequence for given word
+        """
+        if not word in self.dfs:
+            return 1.0
+        df = self.dfs[word]
+        df_max = self.dfs["the"] + 1
+        proba = df / df_max
+        return self.alpha / (self.alpha + proba)
+
+    def _tokenize(self, text: str):
+        """Split text into words
+        """
+        words = re.findall(r"\w+", text.lower())
+        return words if words is not None else []
+
+    def _remove_first_pc(self, X: np.ndarray):
+        """Remove first principle component
+            Citation: Arora, Sanjeev et al. “A Simple but Tough-to-Beat Baseline
+            for Sentence Embeddings.” ICLR (2017).
+        """
+        svd = TruncatedSVD(n_components=1, n_iter=7, random_state=0)
+        svd.fit(X)
+        pc = svd.components_
+        X = X - X.dot(pc.transpose()) * pc
+        return X
 
 
 class BagOfVectorsEncoder(Encoder):
-    """
-    This class is a bag of words encoder class extending Encoder class.
 
-
-    """
+    """Bag of vectors encoder"""
 
     def __init__(self, emb_matrix):
+        """Initialize"""
         super().__init__()
         self._emb_matrix = emb_matrix
-        self.encoder_fn = self._vectorize_items
-        self.is_valid_input = lambda x: isinstance(x, list)
 
-    def _vectorize_items(self, bag_of_items):
+    def is_valid_input(self, data):
+        return isinstance(data, (list, set))
+
+    def encoder_fn(self, bag_of_items):
         items = [item for item in bag_of_items if item in self._emb_matrix]
         vectors = [self._emb_matrix[item] for item in items]
         vectors_as_tuples = [tuple(vec) for vec in vectors]

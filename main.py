@@ -38,14 +38,14 @@ async def encode(req: EncodingRequest):
             vector = SentBERTVectorizer().encode_many(req.data)
             return {"original": req.data, "encoded": vector.tolist()}
         elif isinstance(req.data, str):
-            vectors = SentBERTVectorizer().embed(req.data)
+            vectors = SentBERTVectorizer().encode(req.data)
             return {"original": req.data, "encoded": vectors.tolist()}
     if req.encoder == "sif":
         if isinstance(req.data, list):
             vector = SIFTextVectorizer().encode_many(req.data)
             return {"original": req.data, "encoded": vector.tolist()}
         elif isinstance(req.data, str):
-            vectors = SIFTextVectorizer().embed(req.data)
+            vectors = SIFTextVectorizer().encode(req.data)
             return {"original": req.data, "encoded": vectors.tolist()}
     if req.encoder == "boe":
         if isinstance(req.data, list):

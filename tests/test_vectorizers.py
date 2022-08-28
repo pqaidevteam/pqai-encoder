@@ -17,14 +17,18 @@ from core.vectorizers import (
     SIFTextVectorizer,
     SentBERTVectorizer,
     CPCVectorizer,
-    EmbeddingMatrix
+    EmbeddingMatrix,
+    BagOfVectorsEncoder
 )
 
 
 class TestSIFTextVectorizer(unittest.TestCase):
+
+    """Test functionality of `SIFTextVectorizer` class"""
+
     def test__can_encode_one(self):
         sent = "This invention is a mouse trap."
-        output = SIFTextVectorizer().embed(sent)
+        output = SIFTextVectorizer().encode(sent)
         self.assertIsInstance(output, np.ndarray)
         self.assertEqual(len(output.shape), 1)
         self.assertGreater(output.shape[0], 0)
@@ -41,9 +45,12 @@ class TestSIFTextVectorizer(unittest.TestCase):
 
 
 class TestSentBERTVectorizer(unittest.TestCase):
+
+    """Test functionality of `SentBERTVectorizer` class"""
+
     def test__can_encode_one(self):
         sent = "This invention is a mouse trap."
-        output = SentBERTVectorizer().embed(sent)
+        output = SentBERTVectorizer().encode(sent)
         self.assertIsInstance(output, np.ndarray)
         self.assertEqual(len(output.shape), 1)
         self.assertGreater(output.shape[0], 0)
@@ -60,9 +67,12 @@ class TestSentBERTVectorizer(unittest.TestCase):
 
 
 class TestCPCVectorizer(unittest.TestCase):
+
+    """Test functionality of `CPCVectorizer` class"""
+
     def test__can_encode_one(self):
         cpc = "H04W52/02"
-        output = CPCVectorizer().embed(cpc)
+        output = CPCVectorizer().encode(cpc)
         self.assertIsInstance(output, np.ndarray)
         self.assertEqual(len(output.shape), 1)
         self.assertGreater(output.shape[0], 0)
@@ -77,31 +87,31 @@ class TestCPCVectorizer(unittest.TestCase):
 
 class TestEmbeddingMatrixClass(unittest.TestCase):
 
+    """Test functionality of `EmbeddingMatrix` class"""
+
     def setUp(self):
         file = f'{TEST_DIR}/test_embs.tsv'
-        self.emb = EmbeddingMatrix.from_tsv(file)
+        self.E = EmbeddingMatrix.from_tsv(file)
 
-    def test_get_embedding_by_word(self):
-        item = 'base'
-        expected_emb = [1.0, 0.0]
-        actual_emb = list(self.emb[item])
-        self.assertEqual(expected_emb, actual_emb)
-
-    def test_can_get_dimensions(self):
-        n_dim = self.emb.dims
+    def test__can_return_embedding_dimensions(self):
+        n_dim = self.E.dims
         self.assertEqual(2, n_dim)
 
-    def test_similar_items(self):
+    def test__can_determine_if_a_label_has_embedding(self):
+        self.assertTrue("base" in self.E)
+        self.assertFalse("django" in self.E)
+
+    def test__can_return_word_vector(self):
+        word = 'base'
+        expected = [1.0, 0.0]
+        actual = list(self.E[word])
+        self.assertEqual(expected, actual)
+
+    def test__can_return_similar_items(self):
         item = 'station'
-        similars = self.emb.similar_to_item(item)
+        similars = self.E.similar_to_item(item)
         most_similar = similars[1]  # [0] is the item itself
         self.assertEqual('stations', most_similar)
-
-    def test_whether_item_exists_in_matrix(self):
-        a = 'station' in self.emb
-        b = 'stationary' in self.emb
-        self.assertTrue(a)
-        self.assertFalse(b)
 
 
 class TestBagOfVectorsEncoder(unittest.TestCase):
