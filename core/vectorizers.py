@@ -1,3 +1,7 @@
+"""
+    `Encoders` that create vector representations
+"""
+
 import re
 import json
 from pathlib import Path
@@ -5,7 +9,7 @@ import numpy as np
 from sklearn.decomposition import TruncatedSVD
 from sentence_transformers import SentenceTransformer
 
-from core.utils import Singleton, normalize_rows
+from core.utils import Singleton, normalize_rows, is_cpc_code
 from core.encoders import Encoder, TextEncoder
 
 BASE_DIR = str(Path(__file__).parent.parent.resolve())
@@ -32,7 +36,7 @@ class SentBERTVectorizer(TextEncoder, metaclass=Singleton):
         return self._model.encode(texts)
 
 
-class CPCVectorizer(TextEncoder, metaclass=Singleton):
+class CPCVectorizer(Encoder, metaclass=Singleton):
 
     """Returns precomputed vector representations for CPC class codes"""
 
@@ -49,12 +53,18 @@ class CPCVectorizer(TextEncoder, metaclass=Singleton):
         self._dims = self._vecs.shape[1]
         self._gray = 0.00001 * np.ones(self._dims)
 
+    def is_valid_input(self, item):
+        return is_cpc_code(item)
+
     def encoder_fn(self, cpc: str):
         """Return vector representation of the given cpc code"""
         if cpc not in self._lut:
             return self._gray
         i = self._lut[cpc]
         return self._vecs[i]
+
+    def encode_many(self, cpcs: list):
+        return np.array([self.encode(cpc) for cpc in cpcs])
 
 
 class EmbeddingMatrix:
@@ -94,7 +104,7 @@ class EmbeddingMatrix:
         """Return most similar items to the given item"""
         idx = self._lut[item]
         vector = self._unit_vectors[idx]
-        return self.similar_to_vector(vector, n)
+        return self.similar_to_vector(vector, n, dist)
 
     def similar_to_vector(self, vector, n=10, dist="cosine"):
         """Return most similar items to the given vector"""
@@ -232,9 +242,11 @@ class BagOfVectorsEncoder(Encoder):
         self._emb_matrix = emb_matrix
 
     def is_valid_input(self, data):
+        """Validate that input is encodable"""
         return isinstance(data, (list, set))
 
     def encoder_fn(self, bag_of_items):
+        """Encode"""
         items = [item for item in bag_of_items if item in self._emb_matrix]
         vectors = [self._emb_matrix[item] for item in items]
         vectors_as_tuples = [tuple(vec) for vec in vectors]
@@ -242,5 +254,6 @@ class BagOfVectorsEncoder(Encoder):
 
     @classmethod
     def from_txt_npy(cls, txtfile, npyfile):
+        """Instantiate from a text file (labels) and a numpy file (vectors)"""
         emb_matrix = EmbeddingMatrix.from_txt_npy(txtfile, npyfile)
         return BagOfVectorsEncoder(emb_matrix)

@@ -1,20 +1,18 @@
 import unittest
-
 import sys
 from pathlib import Path
 
-test_dir = str(Path(__file__).parent.resolve())
-BASE_DIR = Path(__file__).parent.parent
-sys.path.append(str(BASE_DIR.resolve()))
+TEST_DIR = str(Path(__file__).parent.resolve())
+BASE_DIR = str(Path(__file__).parent.parent.resolve())
+sys.path.append(BASE_DIR)
 
-from core.encoders import EmbeddingMatrix, BagOfVectorsEncoder
-from core.representations import BagOfVectors
-from core.representations import BagOfEntities
+from core.vectorizers import EmbeddingMatrix, BagOfVectorsEncoder
+from core.representations import BagOfVectors, BagOfEntities
 
 
 class TestBagOfVectorsClass(unittest.TestCase):
     def setUp(self):
-        emb_matrix_file = f"{test_dir}/test_embs.tsv"
+        emb_matrix_file = f"{TEST_DIR}/test_embs.tsv"
         emb_matrix = EmbeddingMatrix.from_tsv(emb_matrix_file)
         self.encoder = BagOfVectorsEncoder(emb_matrix)
 

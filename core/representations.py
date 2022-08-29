@@ -6,7 +6,7 @@ import numba
 import numpy as np
 from nltk.tokenize import RegexpTokenizer
 from sklearn.decomposition import TruncatedSVD
-from core.utils import is_cpc_code, is_patent_number
+from core.utils import is_cpc_code
 
 BASE_DIR = str(Path(__file__).parent.parent.resolve())
 MODELS_DIR = "{}/assets".format(BASE_DIR)

@@ -5,6 +5,7 @@ suitable as inputs for machine learning pipelines.
 
 import re
 from pathlib import Path
+import numpy as np
 from core.utils import get_sentences
 from core.representations import BagOfEntities
 
@@ -60,10 +61,16 @@ class TextEncoder(Encoder):
     """Abstract class for encoders that create vector representations"""
 
     def is_valid_input(self, item):
+        """Validate that the item is encodable"""
         return isinstance(item, str)
 
     def encode_many(self, items):
+        """Encode multiple items in one go"""
         return np.array([self.encode(item) for item in items])
+
+    def encoder_fn(self, data):
+        """Encoder function"""
+        raise NotImplementedError
 
 
 class BagOfEntitiesEncoder(TextEncoder):
