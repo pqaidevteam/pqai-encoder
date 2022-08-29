@@ -12,7 +12,7 @@ BASE_DIR = str(Path(__file__).parent.parent.resolve())
 ASSETS_DIR = f"{BASE_DIR}/assets"
 
 
-class Vectorizer(Encoder):
+class TextEncoder(Encoder):
 
     """Abstract class for encoders that create vector representations"""
 
@@ -23,7 +23,7 @@ class Vectorizer(Encoder):
         return np.array([self.encode(item) for item in items])
 
 
-class SentBERTVectorizer(Vectorizer, metaclass=Singleton):
+class SentBERTVectorizer(TextEncoder, metaclass=Singleton):
 
     """SBERT Vectorizer"""
 
@@ -43,7 +43,7 @@ class SentBERTVectorizer(Vectorizer, metaclass=Singleton):
         return self._model.encode(texts)
 
 
-class CPCVectorizer(Vectorizer, metaclass=Singleton):
+class CPCVectorizer(TextEncoder, metaclass=Singleton):
 
     """Returns precomputed vector representations for CPC class codes"""
 
@@ -171,7 +171,7 @@ class EmbeddingMatrix:
         return EmbeddingMatrix(labels, np.array(vectors))
 
 
-class SIFTextVectorizer(Vectorizer, metaclass=Singleton):
+class SIFTextVectorizer(TextEncoder, metaclass=Singleton):
 
     """Computes embeddings for text using SIF weighted word vectors"""
 
