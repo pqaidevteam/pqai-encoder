@@ -6,21 +6,10 @@ from sklearn.decomposition import TruncatedSVD
 from sentence_transformers import SentenceTransformer
 
 from core.utils import Singleton, normalize_rows
-from core.encoders import Encoder
+from core.encoders import Encoder, TextEncoder
 
 BASE_DIR = str(Path(__file__).parent.parent.resolve())
 ASSETS_DIR = f"{BASE_DIR}/assets"
-
-
-class TextEncoder(Encoder):
-
-    """Abstract class for encoders that create vector representations"""
-
-    def is_valid_input(self, item):
-        return isinstance(item, str)
-
-    def encode_many(self, items):
-        return np.array([self.encode(item) for item in items])
 
 
 class SentBERTVectorizer(TextEncoder, metaclass=Singleton):

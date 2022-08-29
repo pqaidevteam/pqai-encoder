@@ -55,7 +55,18 @@ class Encoder:
         return [self.encode(item) for item in items]
 
 
-class BagOfEntitiesEncoder(Encoder):
+class TextEncoder(Encoder):
+
+    """Abstract class for encoders that create vector representations"""
+
+    def is_valid_input(self, item):
+        return isinstance(item, str)
+
+    def encode_many(self, items):
+        return np.array([self.encode(item) for item in items])
+
+
+class BagOfEntitiesEncoder(TextEncoder):
 
     """Converts a piece of text into a set (bag) of entities"""
 
@@ -68,10 +79,6 @@ class BagOfEntitiesEncoder(Encoder):
         self._sep = " "  # separator
         self._maxlen = 3  # no. of words in longest entity
         self._no_overlap = True
-
-    def is_valid_input(self, data):
-        """Return True if `data` is encodable"""
-        return isinstance(data, str)
 
     def encoder_fn(self, text: str):
         """Encode given `text` as a bag of entities"""
