@@ -4,8 +4,6 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![GitHub license](https://img.shields.io/github/license/pqaidevteam/pqai?style=plastic)](https://github.com/pqaidevteam/pqai/blob/master/LICENSE)
 
-_Note: This repository is under activity development and not ready for production yet._
-
 # PQAI Encoder (WIP)
 
 PQAI service for transforming data into representations suitable as inputs for machine-learning pipelines. For example, transforming a piece of text into an embedding in a high-dimensional vector space.
