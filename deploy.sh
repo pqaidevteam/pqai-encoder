@@ -14,13 +14,13 @@
 git checkout main
 git pull origin main
 
-FILE=assets/pmbl2subclass.json
+FILE=assets/dfs.json
 if [ ! -f "$FILE" ]; then
-    curl -o assets.zip "https://s3.amazonaws.com/pqai.s3/public/assets-pqai-classifier.zip"
+    curl -o assets.zip "https://s3.amazonaws.com/pqai.s3/public/assets-pqai-encoder.zip"
     unzip assets.zip -d assets/
     rm assets.zip
 fi
 
-docker build . -t pqai_classifier:latest
+docker build . -t pqai_encoder:latest
 docker-compose down
-docker-compose up
+docker-compose up -d
