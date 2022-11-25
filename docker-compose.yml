@@ -6,6 +6,10 @@ services:
     container_name: pqai_encoder
     build: .
     restart: always
+    volumes:
+      - type: bind
+        source: ./assets
+        target: /app/assets
     ports:
       - ${PORT}:80
     environment:
