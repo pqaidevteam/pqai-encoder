@@ -4,6 +4,7 @@
 
 import re
 import json
+import os
 from pathlib import Path
 import numpy as np
 from sklearn.decomposition import TruncatedSVD
@@ -14,13 +15,14 @@ from core.encoders import Encoder, TextEncoder
 
 BASE_DIR = str(Path(__file__).parent.parent.resolve())
 ASSETS_DIR = f"{BASE_DIR}/assets"
+DEFAULT_SBERT_MODEL = os.environ["DEFAULT_SBERT_MODEL"]
 
 
 class SentBERTVectorizer(TextEncoder, metaclass=Singleton):
 
     """SBERT Vectorizer"""
 
-    model_path = f"{ASSETS_DIR}/vectorizer_distilbert_poc"
+    model_path = f"{ASSETS_DIR}/{DEFAULT_SBERT_MODEL}"
 
     def __init__(self):
         """Initialize"""

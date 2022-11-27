@@ -14,3 +14,4 @@ services:
       - ${PORT}:80
     environment:
       - PORT=${PORT}
+      - DEFAULT_SBERT_MODEL=${DEFAULT_SBERT_MODEL}

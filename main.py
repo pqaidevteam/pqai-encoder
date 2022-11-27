@@ -11,7 +11,8 @@ import os
 from pathlib import Path
 import uvicorn
 from fastapi import FastAPI, Response
-from typing import Union, List, Literal
+from typing import Union, List
+from typing_extensions import Literal
 from pydantic import BaseModel
 
 from core.encoders import BagOfEntitiesEncoder
