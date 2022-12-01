@@ -4,7 +4,7 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![GitHub license](https://img.shields.io/github/license/pqaidevteam/pqai?style=plastic)](https://github.com/pqaidevteam/pqai/blob/master/LICENSE)
 
-# PQAI Encoder (WIP)
+# PQAI Encoder
 
 PQAI service for transforming data into representations suitable as inputs for machine-learning pipelines. For example, transforming a piece of text into an embedding in a high-dimensional vector space.
 
@@ -14,6 +14,8 @@ The following representations are supported at the moment:
 1. Text -> Sequence of word vectors
 1. Text -> Bag of entities
 
+
+For more detailed information, please refer to [PQAI Wiki](https://github.com/pqaidevteam/pqai/wiki/pqai-encoder).
 ## Routes
 
 | Method | Route     | Description                            |
